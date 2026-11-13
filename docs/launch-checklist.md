@@ -6,10 +6,16 @@ dashboard and with the client.
 
 ## Before go-live
 
-- [ ] **Set `FORM_WEBHOOK_URL`** on the `pomi-brow` Worker (Settings → Variables and secrets, as a
-      secret). Until it is set, the appointment form tells visitors to call instead, and the
-      Worker log shows `[contact] FORM_WEBHOOK_URL is not set`. Point it at whatever delivers to
-      Pomi (Zapier/Make webhook to email or SMS, Formspree, etc.) and send one test request.
+- [ ] **Connect the appointment form to Resend.** In Resend, verify `pomibbrowstudio.com`
+      (Domains → Add; add the DNS records it lists in Cloudflare) and create an API key. Then on
+      the `pomi-brow` Worker (Settings → Variables and secrets) add:
+      - `RESEND_API_KEY`, type Secret.
+      - `APPOINTMENT_TO`, the inbox that should get requests (comma-separate several).
+      - `APPOINTMENT_FROM` only to change the sender from
+        `Pomi B. Brow Studio website <website@pomibbrowstudio.com>`.
+      Until the key and recipient are set, the form tells visitors to call instead, and the
+      Worker log shows `[contact] RESEND_API_KEY and APPOINTMENT_TO must both be set`. Send one
+      test request; a failed send logs `[contact] Resend failed:` with Resend's reason.
 - [ ] **Confirm the rate limiter deployed.** `npx wrangler deploy` output should list the
       `CONTACT_LIMITER` binding. If the account cannot use it, the Worker logs
       `CONTACT_LIMITER binding missing` once per isolate.

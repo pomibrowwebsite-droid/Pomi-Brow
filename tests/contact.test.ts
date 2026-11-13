@@ -9,6 +9,8 @@ import {
   isEmail,
   MAX_BODY_BYTES,
   HONEYPOT_FIELD,
+  RESEND_ENDPOINT,
+  DEFAULT_FROM,
   type ContactEnv,
   type ContactDeps,
 } from "../src/lib/contact.ts";
@@ -28,26 +30,52 @@ function post(body: unknown, headers: Record<string, string> = {}, type = "appli
 }
 
 function recorder(status = 200) {
-  const calls: { url: string; body: any }[] = [];
+  const calls: { url: string; auth: string | undefined; body: any }[] = [];
   const fetchLike = (async (url: string, init: RequestInit) => {
-    calls.push({ url, body: JSON.parse(String(init.body)) });
+    const auth = (init.headers as Record<string, string> | undefined)?.Authorization;
+    calls.push({ url, auth, body: JSON.parse(String(init.body)) });
     return new Response("{}", { status });
   }) as unknown as typeof fetch;
   return { fetchLike, calls };
 }
 
-const env: ContactEnv = { FORM_WEBHOOK_URL: "https://hooks.example/abc" };
+const env: ContactEnv = { RESEND_API_KEY: "re_test", APPOINTMENT_TO: "pomi@example.com" };
 
-test("forwards a good submission and reports success", async () => {
+test("emails a good submission through Resend and reports success", async () => {
   const { fetchLike, calls } = recorder();
-  const res = await handleContact(post({ ...GOOD, service: "microblading" }), env, { fetch: fetchLike });
+  const res = await handleContact(post({ ...GOOD, email: "ana@example.com", service: "lip-blush" }), env, { fetch: fetchLike });
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), { ok: true });
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].body.name, "Ana");
-  assert.equal(calls[0].body.service, "microblading");
-  assert.equal(calls[0].body.page, "/services/microblading", "only the same-site path, no query");
+  assert.equal(calls[0].url, RESEND_ENDPOINT);
+  assert.equal(calls[0].auth, "Bearer re_test");
+  const mail = calls[0].body;
+  assert.deepEqual(mail.to, ["pomi@example.com"]);
+  assert.equal(mail.from, DEFAULT_FROM);
+  assert.equal(mail.reply_to, "ana@example.com");
+  assert.equal(mail.subject, "Appointment request from Ana");
+  assert.match(mail.text, /Service: Lip blush/);
+  assert.match(mail.text, /\(\/services\/microblading\)/, "only the same-site path, no query");
+  assert.ok(!mail.text.includes("x=1"));
   assert.equal(res.headers.get("x-content-type-options"), "nosniff");
+});
+
+test("sends to every address in APPOINTMENT_TO and honours APPOINTMENT_FROM", async () => {
+  const { fetchLike, calls } = recorder();
+  const custom: ContactEnv = { ...env, APPOINTMENT_TO: "a@example.com, b@example.com", APPOINTMENT_FROM: "Studio <hi@pomibbrowstudio.com>" };
+  await handleContact(post(GOOD), custom, { fetch: fetchLike });
+  assert.deepEqual(calls[0].body.to, ["a@example.com", "b@example.com"]);
+  assert.equal(calls[0].body.from, "Studio <hi@pomibbrowstudio.com>");
+  assert.equal(calls[0].body.reply_to, undefined, "no reply-to without an email");
+});
+
+test("visitor text is escaped in the HTML email", async () => {
+  const { fetchLike, calls } = recorder();
+  await handleContact(post({ ...GOOD, name: "<img src=x onerror=alert(1)>", message: "<b>hi</b> & bye" }), env, { fetch: fetchLike });
+  const { html } = calls[0].body;
+  assert.ok(!html.includes("<img src=x"));
+  assert.ok(html.includes("&lt;img src=x onerror=alert(1)&gt;"));
+  assert.ok(html.includes("&lt;b&gt;hi&lt;/b&gt; &amp; bye"));
 });
 
 test("a no-JS form post is forwarded and redirected to a thank-you page", async () => {
@@ -150,13 +178,17 @@ test("oversized bodies are refused", async () => {
 test("unknown service values are dropped rather than forwarded", async () => {
   const { fetchLike, calls } = recorder();
   await handleContact(post({ ...GOOD, service: "<b>x</b>" }), env, { fetch: fetchLike });
-  assert.equal(calls[0].body.service, "");
+  assert.match(calls[0].body.text, /Service: not chosen/);
 });
 
-test("says not-configured when there is no webhook", async () => {
-  const res = await handleContact(post(GOOD), {});
-  assert.equal(res.status, 503);
-  assert.equal((await res.json()).error, "not-configured");
+test("says not-configured without both the API key and a recipient", async () => {
+  for (const partial of [{}, { RESEND_API_KEY: "re_test" }, { APPOINTMENT_TO: "pomi@example.com" }, { RESEND_API_KEY: "re_test", APPOINTMENT_TO: " , " }]) {
+    const { fetchLike, calls } = recorder();
+    const res = await handleContact(post(GOOD), partial, { fetch: fetchLike });
+    assert.equal(res.status, 503);
+    assert.equal((await res.json()).error, "not-configured");
+    assert.equal(calls.length, 0);
+  }
 });
 
 test("reports an upstream failure", async () => {
@@ -186,12 +218,11 @@ test("IPv4-mapped IPv6 keys by the IPv4 address", () => {
   assert.equal(clientKey("::ffff:198.51.100.7"), "198.51.100.7");
 });
 
-test("formula-looking values are defused before forwarding, the phone keeps its +", async () => {
+test("the message keeps its line breaks and the phone keeps its +", async () => {
   const { fetchLike, calls } = recorder();
-  await handleContact(post({ ...GOOD, name: "=HYPERLINK(\"x\")", phone: "+1 949 555 0100", message: "@SUM(1)" }), env, { fetch: fetchLike });
-  assert.equal(calls[0].body.name, "'=HYPERLINK(\"x\")");
-  assert.equal(calls[0].body.message, "'@SUM(1)");
-  assert.equal(calls[0].body.phone, "+1 949 555 0100");
+  await handleContact(post({ ...GOOD, phone: "+1 949 555 0100", message: "- first\n- second" }), env, { fetch: fetchLike });
+  assert.match(calls[0].body.text, /Phone: \+1 949 555 0100/);
+  assert.match(calls[0].body.text, /- first\n- second/);
 });
 
 test("phone and email checks", () => {
