@@ -58,3 +58,7 @@
 /scalp-micropigmentation-1/  /learn/scalp-micropigmentation  301
 /eyeliner-lash-enhancement  /learn/eyeliner-vs-lash-enhancement  301
 /eyeliner-lash-enhancement/  /learn/eyeliner-vs-lash-enhancement  301
+
+# Sanity Studio is one page that routes in the browser; a reload on a deep link such as
+# /admin/structure/service must still get that page.
+/admin/*  /admin  200

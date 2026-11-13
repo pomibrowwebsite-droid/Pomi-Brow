@@ -38,7 +38,7 @@ function inline(b: any): string {
         // Only http(s), mailto and tel; never javascript: from a CMS field.
         if (!/^(https?:|mailto:|tel:|\/|#)/i.test(href)) continue;
         const external = /^https?:/i.test(href);
-        html = `<a href="${esc(href)}"${external ? ' rel="noopener" target="_blank"' : ""}>${html}</a>`;
+        html = `<a href="${esc(href)}"${external ? ' rel="noopener" target="_blank"' : ""}>${html}${external ? '<span class="visually-hidden"> (opens in a new tab)</span>' : ""}</a>`;
       }
       return html;
     })

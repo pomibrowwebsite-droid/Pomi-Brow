@@ -13,7 +13,8 @@
     "media:import": "node scripts/import-media.mjs",
     "logo:export": "powershell -ExecutionPolicy Bypass -File scripts/export-logo.ps1",
     "live:embeds": "node scripts/import-live-embeds.mjs",
-    "live:capture": "node scripts/capture-live.mjs"
+    "live:capture": "node scripts/capture-live.mjs",
+    "a11y": "node scripts/a11y-audit.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.10",
@@ -38,6 +39,7 @@
     "@cloudflare/workers-types": "^5.20260907.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "axe-core": "^4.14.0",
     "entities": "^4.5.0",
     "node-html-parser": "^7.1.0",
     "puppeteer-core": "^25.10.0",

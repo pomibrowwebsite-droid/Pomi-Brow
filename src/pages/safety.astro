@@ -11,17 +11,15 @@ import PageHeader from "../components/PageHeader.astro";
 import ImageSlot from "../components/sections/ImageSlot.astro";
 import Sections from "../components/sections/Sections.astro";
 import ContactForm from "../components/ContactForm.astro";
-import { getSiteSettings, getServices, getLearnArticles, getPage } from "../lib/content";
+import { getSiteSettings, getServices, getPage } from "../lib/content";
 import { effectiveRatio, hasSlot } from "../lib/sections";
 
-const [settings, services, learn, page] = await Promise.all([
+const [settings, services, page] = await Promise.all([
   getSiteSettings(),
   getServices(),
-  getLearnArticles(),
   getPage("safety"),
 ]);
 if (!page) throw new Error("pages.json has no 'safety' page");
-const faqs = learn.filter((a) => a.showAsFaq);
 ---
 
 <Base
@@ -29,7 +27,6 @@ const faqs = learn.filter((a) => a.showAsFaq);
   description="How the studio stays clean and private, why every tool is single-use, who should ask before booking, and how safety continues into aftercare."
   settings={settings}
   services={services}
-  faqs={faqs}
   canonicalPath="/safety"
 >
   <PageHeader title={page.title} lede={page.lede} meta={page.meta} metaLabel={page.metaLabel} facts={page.facts}>

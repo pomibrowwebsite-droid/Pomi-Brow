@@ -51,6 +51,10 @@
      and open states step up to the full --pink. */
   --line-pink: #f8a8c4;
   --line-pink-strong: var(--pink);
+  /* The edge of a control a visitor must find (a form field, the menu button). WCAG 1.4.11
+     asks 3:1 against the page; --line-pink is 1.84:1. Same rose, deep enough: 3.21:1 on
+     white, 3.05:1 on --surface. */
+  --line-control: #cf7396;
 
   /* Pigment. Sampled from the studio's own healed photographs: the mean of the
      darkest 5% of pixels across three images per category, which is the

@@ -6,10 +6,10 @@
 // The canonical points at the article's own URL so search engines see one page, not two.
 import Base from "../../layouts/Base.astro";
 import LearnReader from "../../components/LearnReader.astro";
+import CtaBand from "../../components/CtaBand.astro";
 import { getSiteSettings, getServices, getLearnArticles } from "../../lib/content";
 
 const [settings, services, learn] = await Promise.all([getSiteSettings(), getServices(), getLearnArticles()]);
-const faqs = learn.filter((a) => a.showAsFaq);
 const article = learn[0];
 ---
 
@@ -18,8 +18,14 @@ const article = learn[0];
   description={article.summary}
   settings={settings}
   services={services}
-  faqs={faqs}
   canonicalPath={`/learn/${article.slug}`}
 >
   <LearnReader article={article} learn={learn} services={services} settings={settings} />
+  <CtaBand
+    id="learn-ask"
+    heading="Ask Pomi about your own brows."
+    text="Every face is different. Call or text and Pomi will tell you what would suit you, or send a request from any page."
+    settings={settings}
+    links={[{ href: "/contact", label: "Request an appointment" }]}
+  />
 </Base>

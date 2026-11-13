@@ -23,13 +23,14 @@ const studioPhoto = localPhoto(
   <div class="page contact__grid">
     <div class="contact__form-col reveal">
       <div class="section-head" style="margin-bottom: var(--space-6)">
-        <h2 id="contact-heading">Ask Pomi anything.</h2>
+        <h2 id="contact-heading">Request an appointment.</h2>
         <p class="lede">
-          Not sure which service fits, or whether it will look natural on you? Send a note or call. Pomi answers herself.
+          Tell Pomi what you have in mind and she will call or text you to find a time. Not sure which service fits? Ask that
+          too. Pomi answers herself.
         </p>
       </div>
 
-      <form class="form" method="post" action="/api/contact" data-contact-form novalidate>
+      <form class="form" method="post" action="/api/contact" data-contact-form>
         <div class="form__row">
           <label class="form__field">
             <span class="form__label">Your name</span>
@@ -56,23 +57,24 @@ const studioPhoto = localPhoto(
           </span>
         </label>
         <label class="form__field">
-          <span class="form__label">Your question</span>
+          <span class="form__label">What you would like, or your question</span>
           <textarea name="message" rows="4" required></textarea>
         </label>
         <label class="form__trap" aria-hidden="true">
           Leave this empty
-          <input type="text" name="website" tabindex="-1" autocomplete="off" />
+          <input type="text" name="pomi_hp_note" tabindex="-1" autocomplete="off" />
         </label>
 
-        <p class="form__status" role="status" aria-live="polite" data-status hidden></p>
+        <p class="form__status" id="contact-status" role="status" aria-live="polite" data-status hidden></p>
 
         <div class="form__actions">
           <button class="btn" type="submit" data-submit>
-            <span data-submit-label>Send to Pomi</span>
+            <span data-submit-label>Send request</span>
             <Icon name="arrow" />
           </button>
           <p class="form__aside">
-            Or call <a href={`tel:${settings.phoneTel}`}>{settings.phone}</a>
+            Or call <a href={`tel:${settings.phoneTel}`}>{settings.phone}</a> or
+            <a href={`sms:${settings.phoneTel}`}>send a text</a>
           </p>
         </div>
         <p class="form__consent">
@@ -147,7 +149,7 @@ const studioPhoto = localPhoto(
     font: inherit;
     color: var(--ink);
     background: var(--canvas);
-    border: 1px solid var(--line-pink);
+    border: 1px solid var(--line-control);
     border-radius: var(--radius-sm);
     padding: 0.7rem 0.85rem;
     transition:
@@ -161,9 +163,8 @@ const studioPhoto = localPhoto(
   .form input:focus-visible,
   .form textarea:focus-visible,
   .form select:focus-visible {
-    outline: none;
+    /* The site-wide focus ring (global.css) stays; the border deepens with it. */
     border-color: var(--pink-ink);
-    box-shadow: 0 0 0 3px rgba(196, 42, 102, 0.12);
   }
   .form textarea {
     resize: vertical;
@@ -278,29 +279,66 @@ const studioPhoto = localPhoto(
 </style>
 
 <script>
-  const form = document.querySelector<HTMLFormElement>("[data-contact-form]");
+  // Progressive enhancement over a form that works without JavaScript (the endpoint answers a
+  // plain post with a redirect to /thanks or /not-sent). With the script: field-level messages
+  // tied to each field by aria-describedby, focus on the first problem, and an in-place result.
   const openedAt = performance.now();
+  const form = document.querySelector<HTMLFormElement>("[data-contact-form]");
   if (form) {
+    form.noValidate = true;
     const status = form.querySelector<HTMLElement>("[data-status]")!;
     const label = form.querySelector<HTMLElement>("[data-submit-label]")!;
+    const idle = label.textContent ?? "Send request";
     const say = (text: string, tone: "ok" | "error") => {
       status.textContent = text;
       status.dataset.tone = tone;
       status.hidden = false;
     };
 
+    // Mirrors src/lib/contact.ts, so the visitor hears about a problem before sending.
+    const isPhone = (s: string) => (s.match(/\d/g) ?? []).length >= 7 && /^[\d\s()+.\-x]+$/i.test(s);
+    const isEmail = (s: string) => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(s);
+    const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement;
+
+    const MESSAGES: Record<string, string> = {
+      "missing-fields": "A name, a phone number, and a few words about what you would like are all Pomi needs.",
+      "invalid-phone": "Please check the phone number. Pomi will use it to call or text you back.",
+      "invalid-email": "That email address looks incomplete. You can also leave it empty.",
+      "rate-limited": "That is a lot of sends in a minute. Please wait a moment, or call the studio.",
+    };
+    const FALLBACK = "That did not go through. Please call or text the studio instead; the number is right here.";
+
+    const mark = (el: HTMLElement, bad: boolean) => {
+      el.setAttribute("aria-invalid", String(bad));
+      if (bad) el.setAttribute("aria-describedby", status.id);
+      else el.removeAttribute("aria-describedby");
+    };
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const fields = Array.from(form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[required]"));
-      let firstBad: HTMLElement | null = null;
-      for (const f of fields) {
-        const bad = !f.value.trim() || (f.type === "email" && !f.checkValidity());
-        f.setAttribute("aria-invalid", String(bad));
-        if (bad && !firstBad) firstBad = f;
+      const name = field("name");
+      const phone = field("phone");
+      const email = field("email");
+      const message = field("message");
+      const checks: [HTMLInputElement | HTMLTextAreaElement, boolean, string][] = [
+        [name, !name.value.trim(), "missing-fields"],
+        [phone, !phone.value.trim(), "missing-fields"],
+        [phone, !!phone.value.trim() && !isPhone(phone.value.trim()), "invalid-phone"],
+        [email, !!email.value.trim() && !isEmail(email.value.trim()), "invalid-email"],
+        [message, !message.value.trim(), "missing-fields"],
+      ];
+      let first: { el: HTMLElement; reason: string } | null = null;
+      const bad = new Set<HTMLElement>();
+      for (const [el, isBad, reason] of checks) {
+        if (isBad) {
+          bad.add(el);
+          if (!first) first = { el, reason };
+        }
       }
-      if (firstBad) {
-        say("A name, a phone number, and your question are all we need.", "error");
-        firstBad.focus();
+      for (const el of [name, phone, email, message]) mark(el, bad.has(el));
+      if (first) {
+        say(MESSAGES[first.reason], "error");
+        first.el.focus();
         return;
       }
 
@@ -316,17 +354,20 @@ const studioPhoto = localPhoto(
           headers: { "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify(data),
         });
-        const body = await res.json().catch(() => ({}));
+        const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
         if (res.ok && body.ok) {
           form.reset();
           label.textContent = "Sent";
-          say("Sent. Pomi will get back to you, usually the same day.", "ok");
+          say("Sent. Pomi will call or text you back, usually the same day.", "ok");
         } else {
-          throw new Error(body.error || "not-sent");
+          label.textContent = idle;
+          say((body.error && MESSAGES[body.error]) || FALLBACK, "error");
+          if (body.error === "invalid-phone") phone.focus();
+          if (body.error === "invalid-email") email.focus();
         }
       } catch {
-        label.textContent = "Send to Pomi";
-        say("That did not go through. Please call the studio instead; the number is right here.", "error");
+        label.textContent = idle;
+        say(FALLBACK, "error");
       } finally {
         delete form.dataset.state;
       }

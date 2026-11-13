@@ -1,0 +1,36 @@
+---
+// Served for any address that does not exist (wrangler.jsonc: not_found_handling "404-page").
+// Old GoDaddy URLs are already redirected in public/_redirects, so a visitor here followed a
+// mistyped or stale link: give them the call, and the three places most people are going.
+import Base from "../layouts/Base.astro";
+import PageHeader from "../components/PageHeader.astro";
+import CtaBand from "../components/CtaBand.astro";
+import { getSiteSettings, getServices } from "../lib/content";
+
+const [settings, services] = await Promise.all([getSiteSettings(), getServices()]);
+---
+
+<Base
+  title={`Page not found | ${settings.businessName}`}
+  description="That page does not exist on this site."
+  settings={settings}
+  services={services}
+  canonicalPath="/404"
+  noindex
+>
+  <PageHeader
+    title="That page is not here."
+    lede="It may have moved when the site was rebuilt. Everything is still a click away."
+  />
+  <CtaBand
+    id="lost"
+    heading="Looking for something?"
+    text="Call or text the studio, or start from one of these."
+    settings={settings}
+    links={[
+      { href: "/", label: "Home" },
+      { href: "/#services", label: "Services and prices" },
+      { href: "/contact", label: "Request an appointment" },
+    ]}
+  />
+</Base>

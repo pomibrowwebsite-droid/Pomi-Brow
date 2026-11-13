@@ -1,7 +1,20 @@
 // Contact endpoint core. Runs under `node --test`; Node 24 strips the types itself.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { handleContact, clean, isPhone, isEmail, MAX_BODY_BYTES, type ContactEnv } from "../src/lib/contact.ts";
+import {
+  handleContact as rawHandle,
+  clean,
+  clientKey,
+  isPhone,
+  isEmail,
+  MAX_BODY_BYTES,
+  HONEYPOT_FIELD,
+  type ContactEnv,
+  type ContactDeps,
+} from "../src/lib/contact.ts";
+
+// Keep the endpoint's operational logging out of the test output.
+const handleContact = (req: Request, env: ContactEnv, deps: ContactDeps = {}) => rawHandle(req, env, { log: () => {}, ...deps });
 
 const SITE = "https://pomibbrowstudio.com";
 const GOOD = { name: "Ana", phone: "(949) 555-0100", message: "Do you do brow touch-ups?", elapsed: 9000 };
@@ -9,7 +22,7 @@ const GOOD = { name: "Ana", phone: "(949) 555-0100", message: "Do you do brow to
 function post(body: unknown, headers: Record<string, string> = {}, type = "application/json") {
   return new Request(`${SITE}/api/contact`, {
     method: "POST",
-    headers: { "content-type": type, origin: SITE, referer: `${SITE}/services/microblading?x=1`, ...headers },
+    headers: { "content-type": type, accept: "application/json", origin: SITE, referer: `${SITE}/services/microblading?x=1`, ...headers },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 }
@@ -37,12 +50,47 @@ test("forwards a good submission and reports success", async () => {
   assert.equal(res.headers.get("x-content-type-options"), "nosniff");
 });
 
-test("accepts a no-JS urlencoded form post", async () => {
+test("a no-JS form post is forwarded and redirected to a thank-you page", async () => {
   const { fetchLike, calls } = recorder();
   const body = new URLSearchParams({ name: "Ana", phone: "949 555 0100", message: "Hi" }).toString();
-  const res = await handleContact(post(body, {}, "application/x-www-form-urlencoded"), env, { fetch: fetchLike });
-  assert.equal(res.status, 200);
+  const res = await handleContact(post(body, { accept: "text/html" }, "application/x-www-form-urlencoded"), env, { fetch: fetchLike });
+  assert.equal(res.status, 303);
+  assert.equal(res.headers.get("location"), "/thanks");
   assert.equal(calls.length, 1);
+});
+
+test("a no-JS form post that fails is redirected to the not-sent page", async () => {
+  const body = new URLSearchParams({ name: "", phone: "", message: "" }).toString();
+  const res = await handleContact(post(body, { accept: "text/html" }, "application/x-www-form-urlencoded"), env);
+  assert.equal(res.status, 303);
+  assert.equal(res.headers.get("location"), "/not-sent");
+});
+
+test("rate limit keys IPv6 clients by their /64", () => {
+  assert.equal(clientKey("2001:db8:1:2:aaaa:bbbb:cccc:dddd"), "2001:db8:1:2::/64");
+  assert.equal(clientKey("2001:db8::1"), "2001:db8:0:0::/64");
+  assert.equal(clientKey("203.0.113.9"), "203.0.113.9");
+  assert.equal(clientKey(null), "unknown");
+});
+
+test("a chunked body over the cap is refused without being read in full", async () => {
+  let pulled = 0;
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulled++;
+      controller.enqueue(new Uint8Array(4096).fill(120));
+      if (pulled > 100) controller.close();
+    },
+  });
+  const req = new Request(`${SITE}/api/contact`, {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json", origin: SITE },
+    body: stream,
+    duplex: "half",
+  } as RequestInit);
+  const res = await handleContact(req, env);
+  assert.equal(res.status, 413);
+  assert.ok(pulled < 10, `stopped early, pulled ${pulled} chunks`);
 });
 
 test("rejects other origins and requests with no Origin", async () => {
@@ -65,7 +113,7 @@ test("only POST is allowed", async () => {
 
 test("honeypot and too-fast fills get a fake success and are not forwarded", async () => {
   const { fetchLike, calls } = recorder();
-  const trap = await handleContact(post({ ...GOOD, website: "http://spam" }), env, { fetch: fetchLike });
+  const trap = await handleContact(post({ ...GOOD, [HONEYPOT_FIELD]: "http://spam" }), env, { fetch: fetchLike });
   assert.deepEqual(await trap.json(), { ok: true });
   const fast = await handleContact(post({ ...GOOD, elapsed: 400 }), env, { fetch: fetchLike });
   assert.deepEqual(await fast.json(), { ok: true });

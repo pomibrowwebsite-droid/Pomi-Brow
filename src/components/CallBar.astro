@@ -1,5 +1,6 @@
 ---
-// Bottom-pinned action on phones. One control when booking is by phone; Call + Book when a booking link exists.
+// Bottom-pinned action on phones. Booking by phone: Call (the main action) beside Text, for the
+// many clients who would rather message. With a booking link: Call + Book.
 import type { SiteSettings } from "../lib/content";
 import Icon from "./Icon.astro";
 
@@ -10,13 +11,19 @@ const { settings } = Astro.props;
 const bookIsCall = settings.bookingHref.startsWith("tel:");
 ---
 
-<div class:list={["callbar", { "callbar--solo": bookIsCall }]} data-callbar>
+<div class:list={["callbar", { "callbar--phone": bookIsCall }]} data-callbar>
   {
     bookIsCall ? (
-      <a class="btn callbar__btn" href={`tel:${settings.phoneTel}`}>
-        <Icon name="phone" />
-        <span>Call {settings.phone}</span>
-      </a>
+      <>
+        <a class="btn callbar__btn" href={`tel:${settings.phoneTel}`}>
+          <Icon name="phone" />
+          <span>Call {settings.phone}</span>
+        </a>
+        <a class="btn btn--quiet callbar__btn" href={`sms:${settings.phoneTel}`}>
+          <Icon name="message" />
+          <span>Text</span>
+        </a>
+      </>
     ) : (
       <>
         <a class="btn btn--quiet callbar__btn" href={`tel:${settings.phoneTel}`}>
@@ -48,8 +55,8 @@ const bookIsCall = settings.bookingHref.startsWith("tel:");
     -webkit-backdrop-filter: blur(12px);
     transition: transform var(--dur-base) var(--ease-out);
   }
-  .callbar--solo {
-    grid-template-columns: 1fr;
+  .callbar--phone {
+    grid-template-columns: 2fr 1fr;
   }
   .callbar[data-hidden] {
     transform: translateY(100%);

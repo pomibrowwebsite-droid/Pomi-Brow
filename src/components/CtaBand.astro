@@ -40,6 +40,10 @@ const signoff = Boolean(image);
           <Icon name="phone" />
           Call {settings.phone}
         </a>
+        <a class="btn btn--quiet" href={`sms:${settings.phoneTel}`}>
+          <Icon name="message" />
+          Text
+        </a>
         {
           links.map((l) => (
             <a class="link" href={l.href}>
