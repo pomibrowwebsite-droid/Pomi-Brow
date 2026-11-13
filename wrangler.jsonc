@@ -21,8 +21,16 @@
   // Per-IP limit on the contact form (src/lib/contact.ts): 5 sends a minute per Cloudflare
   // location. namespace_id is any integer unique within the Cloudflare account.
   "ratelimits": [{ "name": "CONTACT_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } }],
-  // Secrets are set in the dashboard or with `wrangler secret put INSTAGRAM_ACCESS_TOKEN`
-  // (and FORM_WEBHOOK_URL, where the contact form is forwarded).
+  // The appointment form emails through Resend. Set in the dashboard (Settings → Variables and
+  // secrets) or with `wrangler secret put <NAME>`:
+  //   RESEND_API_KEY    secret, from resend.com/api-keys
+  //   APPOINTMENT_TO    where requests go (comma-separate several addresses)
+  //   APPOINTMENT_FROM  optional; on a domain verified in Resend, default
+  //                     "Pomi B. Brow Studio website <website@pomibbrowstudio.com>"
+  // keep_vars stops `wrangler deploy` from deleting plain variables typed into the dashboard
+  // (secrets always survive), so APPOINTMENT_TO can be a plain variable without being wiped.
+  "keep_vars": true,
+  // INSTAGRAM_ACCESS_TOKEN is a secret too, if the live feed is wanted.
   // To enable weekly token refresh, create a KV namespace and add its id here:
   // "kv_namespaces": [{ "binding": "INSTAGRAM_KV", "id": "<namespace id>" }],
   "observability": { "enabled": true }

@@ -1,6 +1,7 @@
 // The contact / appointment-request endpoint, POST /api/contact. One core shared by the Worker
 // (src/worker.ts, the live deploy) and the Pages Function (functions/api/contact.ts), tested in
-// tests/contact.test.ts. Submissions are forwarded to FORM_WEBHOOK_URL and never stored here.
+// tests/contact.test.ts. Each request is emailed to the studio through Resend (RESEND_API_KEY,
+// APPOINTMENT_TO, APPOINTMENT_FROM) and never stored here.
 //
 // Defences, cheapest first: same-origin only, a body-size cap enforced while reading, an
 // optional per-network rate limit (the CONTACT_LIMITER binding in wrangler.jsonc), a honeypot
@@ -16,7 +17,12 @@ export interface RateLimiter {
 }
 
 export interface ContactEnv {
-  FORM_WEBHOOK_URL?: string;
+  /** Resend API key (a secret). Without it the form tells visitors to call instead. */
+  RESEND_API_KEY?: string;
+  /** Where requests are emailed. Several addresses may be separated by commas. */
+  APPOINTMENT_TO?: string;
+  /** The sender. Must be on a domain verified in Resend; defaults to DEFAULT_FROM. */
+  APPOINTMENT_FROM?: string;
   CONTACT_LIMITER?: RateLimiter;
 }
 
@@ -30,6 +36,9 @@ export const MAX_BODY_BYTES = 16 * 1024;
 export const MIN_FILL_MS = 1500;
 /** The hidden field. Named so no browser or password manager will autofill it. */
 export const HONEYPOT_FIELD = "pomi_hp_note";
+
+export const RESEND_ENDPOINT = "https://api.resend.com/emails";
+export const DEFAULT_FROM = "Pomi B. Brow Studio website <website@pomibbrowstudio.com>";
 
 export const SENT_PATH = "/thanks";
 export const NOT_SENT_PATH = "/not-sent";
@@ -64,12 +73,53 @@ export function clean(value: unknown, max: number, multiline = false): string {
 }
 
 export const isEmail = (s: string) => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(s);
-/**
- * If the webhook ends in a spreadsheet (Zapier/Make to Google Sheets, a CSV export), a value
- * starting with = + - @ would run as a formula when opened. Prefix those with an apostrophe,
- * which spreadsheets read as "this is text" and email shows harmlessly.
- */
-export const defuseFormula = (s: string) => (/^[=+\-@]/.test(s) ? `'${s}` : s);
+/** Everything a visitor typed goes into the email's HTML through this. */
+export const escapeHtml = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+/** "lip-blush" → "Lip blush". The slug is already restricted to [a-z0-9-]. */
+const serviceLabel = (slug: string) => (slug ? slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, " ") : "");
+
+export interface Appointment {
+  name: string;
+  phone: string;
+  email: string;
+  service: string;
+  message: string;
+  page: string;
+}
+
+/** The email Pomi receives: a short table, the message, and reply-to set to the visitor. */
+export function composeEmail(a: Appointment, from: string, to: string[]) {
+  const rows: [string, string][] = [
+    ["Name", a.name],
+    ["Phone", a.phone],
+    ["Email", a.email || "not given"],
+    ["Service", serviceLabel(a.service) || "not chosen"],
+  ];
+  const sentFrom = `Sent from the pomibbrowstudio.com appointment form${a.page ? ` (${a.page})` : ""}.`;
+  const html = `<div style="font-family:ui-sans-serif,system-ui,sans-serif;font-size:15px;line-height:1.6;color:#2b2326">
+  <h2 style="font-size:18px;margin:0 0 16px">New appointment request</h2>
+  <table cellpadding="0" cellspacing="0" style="margin:0 0 20px">
+    ${rows
+      .map(([k, v]) => `<tr><td style="padding:4px 20px 4px 0;color:#6b6266">${k}</td><td style="padding:4px 0"><strong>${escapeHtml(v)}</strong></td></tr>`)
+      .join("")}
+  </table>
+  <div style="color:#6b6266;margin:0 0 6px">Message</div>
+  <div style="white-space:pre-wrap;border-left:3px solid #cf7396;padding-left:14px">${escapeHtml(a.message)}</div>
+  <p style="color:#6b6266;font-size:13px;margin-top:24px">${escapeHtml(sentFrom)}</p>
+</div>`;
+  const text = ["New appointment request", "", ...rows.map(([k, v]) => `${k}: ${v}`), "", "Message:", a.message, "", sentFrom].join("\n");
+  return {
+    from,
+    to,
+    subject: `Appointment request from ${a.name}`,
+    html,
+    text,
+    // Replying in the mail app goes straight back to the visitor, when they left an address.
+    ...(a.email ? { reply_to: a.email } : {}),
+  };
+}
 
 /** At least seven digits, the shortest local number a person could call back. */
 export const isPhone = (s: string) => (s.match(/\d/g) ?? []).length >= 7 && /^[\d\s()+.\-x]+$/i.test(s);
@@ -207,33 +257,26 @@ async function evaluate(request: Request, env: ContactEnv, deps: ContactDeps): P
   if (!isPhone(phone)) return fail(422, "invalid-phone");
   if (email && !isEmail(email)) return fail(422, "invalid-email");
 
-  if (!env.FORM_WEBHOOK_URL) {
+  const apiKey = env.RESEND_API_KEY?.trim();
+  const to = (env.APPOINTMENT_TO ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (!apiKey || !to.length) {
     // Not configured yet. Tell the visitor plainly; the page offers the phone number.
-    log("[contact] FORM_WEBHOOK_URL is not set: a request could not be delivered");
+    log("[contact] RESEND_API_KEY and APPOINTMENT_TO must both be set: a request could not be delivered");
     return fail(503, "not-configured");
   }
-
-  // The phone is digits by now (isPhone), so it keeps its leading "+".
-  const payload = {
-    name: defuseFormula(name),
-    phone,
-    email: defuseFormula(email),
-    service,
-    message: defuseFormula(message),
-    submittedAt: new Date().toISOString(),
-    page: sourcePath(request),
-  };
+  const from = env.APPOINTMENT_FROM?.trim() || DEFAULT_FROM;
 
   const doFetch = deps.fetch ?? fetch;
-  const upstream = await doFetch(env.FORM_WEBHOOK_URL, {
+  const upstream = await doFetch(RESEND_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(payload),
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(composeEmail({ name, phone, email, service, message, page: sourcePath(request) }, from, to)),
     signal: AbortSignal.timeout(8000),
   }).catch(() => null);
 
   if (!upstream || !upstream.ok) {
-    log(`[contact] webhook failed: ${upstream ? upstream.status : "network error"}`);
+    const detail = upstream ? `${upstream.status} ${(await upstream.text().catch(() => "")).slice(0, 300)}` : "network error";
+    log(`[contact] Resend failed: ${detail}`);
     return fail(502, "upstream");
   }
   return ok();

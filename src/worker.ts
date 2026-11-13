@@ -10,7 +10,9 @@ interface Env {
   INSTAGRAM_ACCESS_TOKEN?: string;
   INSTAGRAM_HANDLE?: string;
   INSTAGRAM_KV?: KVNamespace;
-  FORM_WEBHOOK_URL?: string;
+  RESEND_API_KEY?: string;
+  APPOINTMENT_TO?: string;
+  APPOINTMENT_FROM?: string;
   CONTACT_LIMITER?: RateLimiter;
 }
 
