@@ -6,6 +6,8 @@ interface Props {
   title?: string;
 }
 const { name, class: className, title } = Astro.props;
+// The title goes out through set:html alongside the paths, so escape it like any other text.
+const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 const paths: Record<Props["name"], string> = {
   phone:
@@ -39,5 +41,5 @@ const paths: Record<Props["name"], string> = {
   stroke-linejoin="round"
   aria-hidden={title ? undefined : "true"}
   role={title ? "img" : undefined}
-  set:html={(title ? `<title>${title}</title>` : "") + paths[name]}
+  set:html={(title ? `<title>${escapeHtml(title)}</title>` : "") + paths[name]}
 />

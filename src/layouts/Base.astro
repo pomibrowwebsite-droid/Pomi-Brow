@@ -20,6 +20,10 @@ const site = Astro.site ?? new URL("https://pomibbrowstudio.com");
 const canonical = new URL(canonicalPath, site).toString();
 const analyticsToken = import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN;
 
+// JSON-LD goes out through set:html, so a "<" in CMS text (e.g. "</script>") must not reach the
+// page raw. The \u003c escape is the same character to a JSON parser and inert to the HTML parser.
+const jsonLd = (data: unknown) => JSON.stringify(data).replace(/</g, "\\u003c");
+
 const sameAs = [settings.instagramUrl, settings.yelpUrl].filter(Boolean);
 
 const business = {
@@ -105,8 +109,8 @@ const faqSchema =
     <meta property="og:url" content={canonical} />
     {ogImage && <meta property="og:image" content={new URL(ogImage, site).toString()} />}
     <meta name="twitter:card" content="summary_large_image" />
-    <script type="application/ld+json" set:html={JSON.stringify(business)} />
-    {faqSchema && <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
+    <script type="application/ld+json" set:html={jsonLd(business)} />
+    {faqSchema && <script type="application/ld+json" set:html={jsonLd(faqSchema)} />}
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
@@ -125,10 +129,7 @@ const faqSchema =
         />
       )
     }
-  <!-- impeccable-live-start -->
-<script is:inline src="http://localhost:8400/live.js?token=2a207d92-1eed-460c-985e-c18f50916401"></script>
-<!-- impeccable-live-end -->
-</body>
+  </body>
 </html>
 
 <style>

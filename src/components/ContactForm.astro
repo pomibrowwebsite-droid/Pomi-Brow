@@ -288,6 +288,7 @@ const studioPhoto = localPhoto(
 
 <script>
   const form = document.querySelector<HTMLFormElement>("[data-contact-form]");
+  const openedAt = performance.now();
   if (form) {
     const status = form.querySelector<HTMLElement>("[data-status]")!;
     const label = form.querySelector<HTMLElement>("[data-submit-label]")!;
@@ -315,7 +316,8 @@ const studioPhoto = localPhoto(
       form.dataset.state = "submitting";
       label.textContent = "Sending";
       status.hidden = true;
-      const data = Object.fromEntries(new FormData(form).entries());
+      // How long the form was open; the endpoint quietly drops sends faster than a person types.
+      const data = { ...Object.fromEntries(new FormData(form).entries()), elapsed: Math.round(performance.now() - openedAt) };
 
       try {
         const res = await fetch(form.action, {
