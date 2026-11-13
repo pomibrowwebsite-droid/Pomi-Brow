@@ -21,6 +21,8 @@ dashboard and with the client.
 - [ ] **Client review of the policy pages** (`/privacy`, `/terms`, `/accessibility`). They are
       written to match what the site actually does, in plain language, but are not legal advice.
       If the studio adds a booking widget, newsletter, ad pixel or chat, `/privacy` must change.
+- [ ] **Visit counts (optional):** set `PUBLIC_CF_ANALYTICS_TOKEN` in the build environment to turn
+      on Cloudflare Web Analytics (cookieless; `/privacy` already describes it as "may").
 - [ ] **Pomi's bio** (Site settings in Sanity). The About section hides itself until it is real.
 
 ## Recommended soon after

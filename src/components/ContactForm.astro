@@ -49,7 +49,7 @@ const studioPhoto = localPhoto(
               autocomplete="tel"
               inputmode="tel"
               required
-              pattern="[0-9\s\(\)+.\-xX]{7,}"
+              pattern="(?=(?:[^0-9]*[0-9]){7})[0-9\s\(\)+.\-xX]+"
               title="A phone number with the area code, for example (949) 555-0100"
               aria-describedby="contact-phone-error"
             />
