@@ -1,9 +1,10 @@
 ---
-// The contact form plus the studio's location. Submissions go to a Cloudflare Pages Function, never to Sanity.
+// The contact form plus the studio's location. Submissions go to POST /api/contact (src/lib/contact.ts), never to Sanity.
 import type { SiteSettings, Service } from "../lib/content";
 import { localPhoto } from "../lib/content";
 import Icon from "./Icon.astro";
 import Photo from "./Photo.astro";
+import MapEmbed from "./MapEmbed.astro";
 
 interface Props {
   settings: SiteSettings;
@@ -74,6 +75,9 @@ const studioPhoto = localPhoto(
             Or call <a href={`tel:${settings.phoneTel}`}>{settings.phone}</a>
           </p>
         </div>
+        <p class="form__consent">
+          By sending this, you agree Pomi may call or text you about your appointment. See the <a href="/privacy">privacy policy</a>.
+        </p>
       </form>
     </div>
 
@@ -99,15 +103,7 @@ const studioPhoto = localPhoto(
               : settings.hoursNote
           }
         </p>
-        <div class="contact__map">
-          <iframe
-            src={settings.mapEmbedUrl}
-            title={`Map to ${settings.businessName}`}
-            loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade"
-            allowfullscreen
-          ></iframe>
-        </div>
+        <MapEmbed settings={settings} />
         <a class="link" href={settings.mapLinkUrl} rel="noopener">
           <Icon name="pin" />
           Directions in Google Maps
@@ -221,6 +217,15 @@ const studioPhoto = localPhoto(
     text-decoration: none;
     font-variant-numeric: tabular-nums;
   }
+  .form__consent {
+    font-size: var(--fs-caption);
+    color: var(--ink-muted);
+    max-width: 52ch;
+  }
+  .form__consent a {
+    color: inherit;
+    text-decoration-color: currentColor;
+  }
   .form__status {
     padding: 0.75rem 0.85rem;
     border: 1px solid var(--line-pink);
@@ -258,20 +263,6 @@ const studioPhoto = localPhoto(
     font-style: normal;
     line-height: 1.5;
     color: var(--ink-body);
-  }
-  .contact__map {
-    aspect-ratio: 4 / 3;
-    margin-top: var(--space-2);
-    border: 1px solid var(--line-pink);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    background: var(--surface);
-  }
-  .contact__map iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    display: block;
   }
   @media (min-width: 40rem) {
     .form__row {

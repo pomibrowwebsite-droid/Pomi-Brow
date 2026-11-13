@@ -1,0 +1,114 @@
+---
+// The studio map, loaded only when the visitor asks for it. An embedded Google Map sets Google
+// cookies and reports the visit to Google the moment it loads, so the site shows a quiet card
+// first: the address is already right beside it, and a directions link works without the map.
+// "Show map" swaps in the iframe and remembers the choice on this device (src/lib/consent.ts),
+// which /privacy#choices can clear. Without JavaScript the button stays hidden and the
+// directions link carries the job.
+import type { SiteSettings } from "../lib/content";
+import Icon from "./Icon.astro";
+
+interface Props {
+  settings: SiteSettings;
+}
+const { settings } = Astro.props;
+---
+
+<div class="mapembed" data-map-embed data-src={settings.mapEmbedUrl} data-title={`Map to ${settings.businessName}`}>
+  <div class="mapembed__gate" data-map-gate>
+    <Icon name="pin" class="mapembed__pin" />
+    <p class="mapembed__where">{settings.street}, {settings.city}</p>
+    <button class="btn btn--quiet mapembed__show" type="button" data-map-show hidden>Show map</button>
+    <p class="mapembed__note" data-map-note hidden>
+      Loads Google Maps, which may set cookies. <a href="/privacy#cookies">Privacy</a>
+    </p>
+  </div>
+</div>
+
+<style>
+  .mapembed {
+    aspect-ratio: 4 / 3;
+    margin-top: var(--space-2);
+    border: 1px solid var(--line-pink);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .mapembed__gate {
+    height: 100%;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    text-align: center;
+  }
+  .mapembed__gate :global(.mapembed__pin) {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--pink-ink);
+  }
+  .mapembed__where {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .mapembed__note {
+    max-width: 26ch;
+    font-size: var(--fs-caption);
+    color: var(--ink-muted);
+  }
+  .mapembed__note a {
+    color: var(--pink-ink);
+    text-decoration-color: currentColor;
+  }
+  .mapembed :global(iframe) {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+</style>
+
+<script>
+  import { MAP_CONSENT_KEY } from "../lib/consent";
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-map-embed]")) {
+    const show = root.querySelector<HTMLButtonElement>("[data-map-show]")!;
+    const note = root.querySelector<HTMLElement>("[data-map-note]")!;
+    const src = root.dataset.src ?? "";
+    // Only ever frame Google Maps, whatever the CMS field holds.
+    if (!src.startsWith("https://www.google.com/maps")) continue;
+
+    const load = (focus: boolean) => {
+      const frame = document.createElement("iframe");
+      frame.src = src;
+      frame.title = root.dataset.title ?? "Map";
+      frame.loading = "lazy";
+      frame.referrerPolicy = "strict-origin-when-cross-origin";
+      frame.tabIndex = 0;
+      root.replaceChildren(frame);
+      if (focus) frame.focus();
+    };
+
+    let remembered = false;
+    try {
+      remembered = localStorage.getItem(MAP_CONSENT_KEY) === "yes";
+    } catch {
+      /* storage blocked: ask every time */
+    }
+    if (remembered) {
+      load(false);
+      continue;
+    }
+    show.hidden = false;
+    note.hidden = false;
+    show.addEventListener("click", () => {
+      try {
+        localStorage.setItem(MAP_CONSENT_KEY, "yes");
+      } catch {
+        /* storage blocked: the map still loads, just not remembered */
+      }
+      load(true);
+    });
+  }
+</script>

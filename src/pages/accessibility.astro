@@ -1,0 +1,67 @@
+---
+// Accessibility statement. Lists what was actually done (see the launch hardening pass) and the
+// known gaps honestly; a statement that overclaims is worse than none. Update the review date
+// whenever the site is re-audited.
+import LegalPage from "../layouts/LegalPage.astro";
+import { getSiteSettings } from "../lib/content";
+
+const settings = await getSiteSettings();
+const updated = "November 13, 2026";
+const sms = `sms:${settings.phoneTel}`;
+---
+
+<LegalPage
+  title="Accessibility Statement"
+  heading="Accessibility."
+  lede="Everyone should be able to learn about the studio and book a visit. Here is what we have done, and how to reach us if something gets in your way."
+  description={`The accessibility statement for the ${settings.businessName} website, and how to get help.`}
+  path="/accessibility"
+  updated={`Last reviewed ${updated}`}
+>
+  <h2 id="goal">Our goal</h2>
+  <p>
+    We aim for this website to meet the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA, the standard most
+    widely used to judge whether a website works for people with disabilities.
+  </p>
+
+  <h2 id="done">What we have done</h2>
+  <ul>
+    <li>Every page can be used with a keyboard alone, with a visible focus ring and a "Skip to content" link.</li>
+    <li>Pages are built with proper headings, landmarks and labels, so screen readers can move around them.</li>
+    <li>Photos have written descriptions, and text and controls meet contrast requirements.</li>
+    <li>Animation is gentle, stops if your device asks for reduced motion, and the moving headline can be paused.</li>
+    <li>Pages still show all their content if JavaScript does not load.</li>
+    <li>The appointment form labels every field, explains any mistake in words, and tells screen readers when it has sent.</li>
+    <li>The site is checked with automated tools (axe and Lighthouse) and by hand with a keyboard before changes go live.</li>
+  </ul>
+
+  <h2 id="limits">Known limitations</h2>
+  <ul>
+    <li>
+      Photo descriptions in the live Instagram section come from the post captions, which may not describe the photo fully.
+    </li>
+    <li>
+      The Google map is provided by Google and is not fully accessible. The studio address and a directions link are always
+      given as text beside it.
+    </li>
+    <li>Linked websites such as Instagram, Yelp and Google Maps are run by other companies.</li>
+  </ul>
+
+  <h2 id="help">Get help or tell us about a problem</h2>
+  <p>
+    If anything on this website is hard to use, or you would like information in another way, please tell us. Pomi can go
+    through services, prices, aftercare and booking with you by phone or text, and we will fix the problem on the website.
+  </p>
+  <ul>
+    <li>Call <a href={`tel:${settings.phoneTel}`}>{settings.phone}</a></li>
+    <li>Text <a href={sms}>{settings.phone}</a></li>
+    <li>Visit {settings.street}, {settings.city}, {settings.state} {settings.zip}</li>
+  </ul>
+  <p>We aim to reply within two business days.</p>
+
+  <h2 id="studio">At the studio</h2>
+  <p>
+    If you have access needs for your visit, mention them when you book and we will do our best to make the appointment
+    work for you.
+  </p>
+</LegalPage>
