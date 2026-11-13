@@ -55,7 +55,7 @@ const hasFacts = facts.length > 0;
           <ul class="pagehead__facts">
             {facts.map((f) => (
               <li class="pagehead__fact">
-                <h3 class="pagehead__fact-title"><Nobr text={f.title} /></h3>
+                <h2 class="pagehead__fact-title"><Nobr text={f.title} /></h2>
                 <p class="pagehead__fact-text"><Nobr text={f.text} /></p>
               </li>
             ))}
@@ -176,6 +176,9 @@ const hasFacts = facts.length > 0;
     background: var(--tile);
   }
   .pagehead__fact-title {
+    /* An h2 for the outline (h1 then these), drawn as the small label it always was. */
+    font-family: var(--font-body);
+    font-variation-settings: normal;
     font-size: var(--fs-small);
     font-weight: 500;
     line-height: 1.4;

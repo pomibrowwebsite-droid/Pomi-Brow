@@ -1,0 +1,31 @@
+---
+// Where a no-JavaScript appointment request lands when it could not be sent (missing fields,
+// a delivery failure, too many sends). The phone always works, so lead with it.
+import Base from "../layouts/Base.astro";
+import PageHeader from "../components/PageHeader.astro";
+import CtaBand from "../components/CtaBand.astro";
+import { getSiteSettings, getServices } from "../lib/content";
+
+const [settings, services] = await Promise.all([getSiteSettings(), getServices()]);
+---
+
+<Base
+  title={`Request not sent | ${settings.businessName}`}
+  description="Your appointment request could not be sent."
+  settings={settings}
+  services={services}
+  canonicalPath="/not-sent"
+  noindex
+>
+  <PageHeader
+    title="That did not go through."
+    lede="Your request was not sent. Please go back and check your name, a phone number with the area code, and a few words about what you would like. Or simply call or text the studio."
+  />
+  <CtaBand
+    id="not-sent-call"
+    heading="Pomi answers the phone herself."
+    text="Call or text and she will find you a time."
+    settings={settings}
+    links={[{ href: "/contact", label: "Back to the form" }]}
+  />
+</Base>

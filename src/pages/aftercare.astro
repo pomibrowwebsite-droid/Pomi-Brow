@@ -12,17 +12,15 @@ import PageHeader from "../components/PageHeader.astro";
 import ImageSlot from "../components/sections/ImageSlot.astro";
 import Sections from "../components/sections/Sections.astro";
 import ContactForm from "../components/ContactForm.astro";
-import { getSiteSettings, getServices, getLearnArticles, getPage } from "../lib/content";
+import { getSiteSettings, getServices, getPage } from "../lib/content";
 import { effectiveRatio, hasSlot } from "../lib/sections";
 
-const [settings, services, learn, page] = await Promise.all([
+const [settings, services, page] = await Promise.all([
   getSiteSettings(),
   getServices(),
-  getLearnArticles(),
   getPage("aftercare"),
 ]);
 if (!page) throw new Error("pages.json has no 'aftercare' page");
-const faqs = learn.filter((a) => a.showAsFaq);
 ---
 
 <Base
@@ -30,7 +28,6 @@ const faqs = learn.filter((a) => a.showAsFaq);
   description="What is normal while permanent makeup heals, the day-by-day timeline, what to avoid in the first week, and the care for brows, eyes, lips and scalp."
   settings={settings}
   services={services}
-  faqs={faqs}
   canonicalPath="/aftercare"
 >
   <PageHeader title={page.title} lede={page.lede} meta={page.meta} metaLabel={page.metaLabel} facts={page.facts}>

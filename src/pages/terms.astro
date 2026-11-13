@@ -1,0 +1,75 @@
+---
+// Terms of use for the website. Deliberately says nothing about deposits or cancellation fees:
+// those are the studio's appointment policies, explained at booking, and must not be invented here.
+import LegalPage from "../layouts/LegalPage.astro";
+import { getSiteSettings } from "../lib/content";
+
+const settings = await getSiteSettings();
+const updated = "November 13, 2026";
+---
+
+<LegalPage
+  title="Terms of Use"
+  heading="Terms of use."
+  lede="The ground rules for using this website. Your appointment itself is covered by the consultation and consent you agree with Pomi in the studio."
+  description={`Terms of use for the ${settings.businessName} website.`}
+  path="/terms"
+  updated={`Last updated ${updated}`}
+>
+  <h2 id="info">Information, not medical advice</h2>
+  <p>
+    The guides on this website explain permanent makeup in general terms. They are not medical advice and do not replace a
+    consultation. Whether a treatment is right for you, and how it is done, is decided with Pomi at your appointment. If you
+    have a medical condition, are pregnant or nursing, or take medication, please check with your doctor first.
+  </p>
+
+  <h2 id="results">Results vary</h2>
+  <p>
+    The photos show real work by Pomi on real clients. Every person's skin heals differently, and results depend on skin
+    type, health, aftercare and lifestyle, so your result will be your own. Healed photos are labeled where we know how
+    long after the treatment they were taken.
+  </p>
+
+  <h2 id="prices">Prices and booking</h2>
+  <p>
+    Prices on this website are a guide and may change. The price for your treatment is confirmed before your appointment.
+    Sending the appointment form is a request, not a booking; your appointment is confirmed once Pomi calls or texts you
+    back. Deposits, rescheduling and cancellation are explained when you book.
+  </p>
+
+  <h2 id="content">Photos and words</h2>
+  <p>
+    The photos, text and logo on this website belong to {settings.businessName}. Client photos are shown with permission.
+    Please don't copy or reuse them without asking us first. Sharing a link to a page is always welcome.
+  </p>
+
+  <h2 id="reviews">Reviews</h2>
+  <p>Reviews quoted on this website come from Yelp and are shown as written.</p>
+
+  <h2 id="links">Other websites</h2>
+  <p>
+    Links to Instagram, Yelp, Google and other websites are there for your convenience. We are not responsible for their
+    content or how they handle your information.
+  </p>
+
+  <h2 id="liability">The website itself</h2>
+  <p>
+    We work to keep this website accurate and available, but it is provided as it is, without guarantees that it will always
+    be complete, current or uninterrupted. To the extent the law allows, we are not liable for losses that come from using
+    the website. Nothing here limits rights you have under California law that cannot be limited.
+  </p>
+
+  <h2 id="law">Governing law</h2>
+  <p>These terms are governed by the laws of the State of California.</p>
+
+  <h2 id="changes">Changes</h2>
+  <p>We may update these terms. The date at the top shows when they last changed.</p>
+
+  <h2 id="contact">Contact</h2>
+  <address>
+    {settings.businessName}<br />
+    {settings.street}<br />
+    {settings.city}, {settings.state} {settings.zip}<br />
+    <a href={`tel:${settings.phoneTel}`}>{settings.phone}</a>
+  </address>
+</LegalPage>

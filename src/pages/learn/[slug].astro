@@ -7,6 +7,7 @@
 // moment Pomi writes one in Sanity; nothing here needs changing.
 import Base from "../../layouts/Base.astro";
 import LearnReader from "../../components/LearnReader.astro";
+import CtaBand from "../../components/CtaBand.astro";
 import { getSiteSettings, getServices, getLearnArticles } from "../../lib/content";
 
 export async function getStaticPaths() {
@@ -16,7 +17,6 @@ export async function getStaticPaths() {
 
 const { article } = Astro.props;
 const [settings, services, learn] = await Promise.all([getSiteSettings(), getServices(), getLearnArticles()]);
-const faqs = learn.filter((a) => a.showAsFaq);
 ---
 
 <Base
@@ -24,8 +24,14 @@ const faqs = learn.filter((a) => a.showAsFaq);
   description={article.summary}
   settings={settings}
   services={services}
-  faqs={faqs}
   canonicalPath={`/learn/${article.slug}`}
 >
   <LearnReader article={article} learn={learn} services={services} settings={settings} />
+  <CtaBand
+    id="learn-ask"
+    heading="Ask Pomi about your own brows."
+    text="Every face is different. Call or text and Pomi will tell you what would suit you, or send a request from any page."
+    settings={settings}
+    links={[{ href: "/contact", label: "Request an appointment" }]}
+  />
 </Base>

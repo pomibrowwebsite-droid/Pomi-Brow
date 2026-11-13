@@ -57,6 +57,13 @@ const categories = [
       </span>
       <span class="visually-hidden">occasion.</span>
     </h1>
+    {/* WCAG 2.2.2: anything that moves on its own for more than five seconds needs a way to stop
+        it. Revealed by the script below, so it never shows where it could do nothing. */}
+    <button class="hero__pause" type="button" data-cycle-toggle data-state="playing" hidden>
+      <span class="hero__pause-icon" data-when="playing"><Icon name="pause" /></span>
+      <span class="hero__pause-icon" data-when="paused"><Icon name="play" /></span>
+      <span data-cycle-label>Pause animation</span>
+    </button>
     <p class="lede">
       Permanent makeup mapped, measured, and drawn by one artist, so the result looks like you on a good day.
     </p>
@@ -144,10 +151,18 @@ const categories = [
     vertical-align: top;
     color: var(--pink-ink);
   }
+  /* At rest the first word shows and the others wait. The loop runs only on a scripted page
+     (.js, set in the layout's head) that has not been paused, so a visitor without JavaScript --
+     who would get no Pause button -- sees a still line. */
   .hero__word {
     grid-area: 1 / 1;
     justify-self: start;
     opacity: 0;
+  }
+  .hero__word:first-child {
+    opacity: 1;
+  }
+  :global(.js) .hero__cycle:not([data-paused]) .hero__word {
     animation: hero-word-swap 16.8s var(--ease-out) infinite;
     animation-delay: calc(var(--i) * 2.4s);
   }
@@ -178,14 +193,39 @@ const categories = [
       filter: blur(4px);
     }
   }
-  /* Reduced motion: the first word simply stays. */
+  /* Reduced motion: the first word simply stays, and there is nothing to pause. */
   @media (prefers-reduced-motion: reduce) {
-    .hero__word {
+    :global(.js) .hero__cycle:not([data-paused]) .hero__word {
       animation: none;
     }
-    .hero__word:first-child {
-      opacity: 1;
+    .hero__pause {
+      display: none;
     }
+  }
+  .hero__pause {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 24px;
+    margin-top: calc(-1 * var(--space-3));
+    padding: 0.15rem 0.1rem;
+    font-size: var(--fs-caption);
+    color: var(--ink-muted);
+  }
+  .hero__pause[hidden] {
+    display: none;
+  }
+  .hero__pause:hover {
+    color: var(--ink);
+  }
+  .hero__pause :global(.icon) {
+    width: 0.85rem;
+    height: 0.85rem;
+  }
+  .hero__pause[data-state="playing"] [data-when="paused"],
+  .hero__pause[data-state="paused"] [data-when="playing"] {
+    display: none;
   }
   .hero__actions {
     display: flex;
@@ -298,3 +338,20 @@ const categories = [
     }
   }
 </style>
+
+<script>
+  // The visible label is the action ("Pause animation" / "Play animation"), so screen readers
+  // hear what pressing it will do.
+  const toggle = document.querySelector<HTMLButtonElement>("[data-cycle-toggle]");
+  const cycle = document.querySelector<HTMLElement>("[data-cycle]");
+  if (toggle && cycle && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const label = toggle.querySelector<HTMLElement>("[data-cycle-label]")!;
+    toggle.hidden = false;
+    toggle.addEventListener("click", () => {
+      const pause = toggle.dataset.state === "playing";
+      toggle.dataset.state = pause ? "paused" : "playing";
+      label.textContent = pause ? "Play animation" : "Pause animation";
+      cycle.toggleAttribute("data-paused", pause);
+    });
+  }
+</script>

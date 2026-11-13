@@ -26,6 +26,11 @@ html {
   accent-color: var(--pink-ink);
 }
 
+/* The header is sticky: anything scrolled to (an #anchor, a focused field) must land below it. */
+html {
+  scroll-padding-top: calc(var(--header-h) + 1rem);
+}
+
 @media (max-width: 59.99rem) {
   html {
     scroll-padding-bottom: calc(var(--callbar-h) + env(safe-area-inset-bottom));
@@ -383,8 +388,9 @@ a[aria-disabled="true"]:not([href]) {
   letter-spacing: 0;
 }
 
-/* Scroll-entry reveal */
-.reveal {
+/* Scroll-entry reveal. Hidden only once the layout's head script has marked the page .js, so
+   with scripts off (or failed) every block is simply there. */
+.js .reveal {
   opacity: 0;
   transform: translateY(12px);
   transition:
@@ -393,13 +399,13 @@ a[aria-disabled="true"]:not([href]) {
   transition-delay: calc(var(--i, 0) * 50ms);
 }
 
-.reveal.is-in {
+.js .reveal.is-in {
   opacity: 1;
   transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
+  .js .reveal {
     opacity: 1;
     transform: none;
     transition: none;

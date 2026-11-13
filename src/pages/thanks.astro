@@ -1,0 +1,35 @@
+---
+// Where a no-JavaScript appointment request lands after it is sent (src/lib/contact.ts answers a
+// plain form post with a 303 here). With JavaScript the form confirms in place instead.
+import Base from "../layouts/Base.astro";
+import PageHeader from "../components/PageHeader.astro";
+import CtaBand from "../components/CtaBand.astro";
+import { getSiteSettings, getServices } from "../lib/content";
+
+const [settings, services] = await Promise.all([getSiteSettings(), getServices()]);
+---
+
+<Base
+  title={`Request sent | ${settings.businessName}`}
+  description="Your appointment request reached the studio."
+  settings={settings}
+  services={services}
+  canonicalPath="/thanks"
+  noindex
+>
+  <PageHeader
+    title="Sent. Thank you."
+    lede="Pomi will call or text you back, usually the same day, to find a time that suits you."
+    meta={`If it is urgent, call ${settings.phone}.`}
+  />
+  <CtaBand
+    id="thanks-next"
+    heading="While you wait."
+    text="Have a look at healed results, or read what to expect at your first visit."
+    settings={settings}
+    links={[
+      { href: "/#work", label: "See the work" },
+      { href: "/safety", label: "Safety and first visits" },
+    ]}
+  />
+</Base>

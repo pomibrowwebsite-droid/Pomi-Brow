@@ -1,0 +1,193 @@
+---
+// Privacy & Cookie Policy. Written for California (CalOPPA), in plain words, and true to what
+// the site actually does: no cookies of its own, cookieless analytics, a form that forwards to
+// the studio, and two third parties (Google Maps, only on request; Instagram images).
+// If any of that changes -- a booking widget, an ad pixel, a newsletter -- this page must too.
+import LegalPage from "../layouts/LegalPage.astro";
+import { getSiteSettings } from "../lib/content";
+import { MAP_CONSENT_KEY } from "../lib/consent";
+
+const settings = await getSiteSettings();
+const updated = "November 13, 2026";
+---
+
+<LegalPage
+  title="Privacy & Cookie Policy"
+  heading="Privacy & cookies."
+  lede="What this website collects, why, who else sees it, and how to ask us to change or delete it."
+  description={`How ${settings.businessName} handles the information you share through this website, and how cookies are used.`}
+  path="/privacy"
+  updated={`Last updated ${updated}`}
+>
+  <h2 id="summary">The short version</h2>
+  <ul>
+    <li>This website sets no cookies of its own and runs no advertising or tracking pixels.</li>
+    <li>If you send the appointment form, we use what you write only to reply and arrange your visit.</li>
+    <li>We never sell or share your information for advertising.</li>
+    <li>The Google map loads only if you ask for it, because Google may set cookies.</li>
+    <li>Call {settings.phone} any time to see, correct or delete what we hold about you.</li>
+  </ul>
+
+  <h2 id="who">Who we are</h2>
+  <p>
+    {settings.businessName} is a permanent makeup studio at {settings.street}, {settings.city}, {settings.state}
+    {settings.zip}. "We" and "us" on this page mean the studio. This policy covers this website. What you share in the
+    studio itself, such as a consultation or consent form, is kept with your client record and explained when you fill it in.
+  </p>
+
+  <h2 id="collect">What we collect</h2>
+  <h3>When you send the appointment form</h3>
+  <p>
+    Your name, phone number, email address if you give one, the service you are interested in, your message, the page
+    you sent it from, and the time. Please don't include medical details in the form; Pomi will go through anything
+    health-related with you in person.
+  </p>
+  <h3>When you call or text</h3>
+  <p>Your phone number and whatever you tell us, which stays on the studio phone.</p>
+  <h3>Automatically, when you visit</h3>
+  <p>
+    Like every website, ours is delivered by a hosting provider, Cloudflare, whose servers see your IP address and browser
+    details in order to send you the page and block abuse. We may also use Cloudflare Web Analytics to count visits. It does
+    not use cookies, does not build a profile of you, and does not follow you to other websites.
+  </p>
+
+  <h2 id="use">How we use it</h2>
+  <ul>
+    <li>To answer your question, call or text you back, and schedule your appointment.</li>
+    <li>To keep a record of requests and appointments.</li>
+    <li>To keep the website secure, for example by limiting how often the form can be sent.</li>
+    <li>To understand, in total, which pages people read, so we can improve them.</li>
+  </ul>
+  <p>We don't send marketing messages unless you ask us to.</p>
+
+  <h2 id="share">Who else sees it</h2>
+  <p>We share information only with the services that run the website for us, and only what they need:</p>
+  <ul>
+    <li><strong>Cloudflare</strong> hosts the website, protects it, and may count visits.</li>
+    <li><strong>Our form delivery service</strong> passes your form message to the studio.</li>
+    <li>
+      <strong>Google</strong>, only if you choose to show the map. Once loaded, the map is Google's, and <a href="https://policies.google.com/privacy" rel="noopener">Google's privacy policy</a> applies to it.
+    </li>
+    <li>
+      <strong>Instagram</strong> (Meta). When our Instagram section shows our latest posts, those photos load from
+      Instagram's servers, which receive your IP address like any website you visit.
+    </li>
+  </ul>
+  <p>
+    We may also disclose information if the law requires it. We do not sell personal information, and we do not share it
+    for cross-context behavioral advertising.
+  </p>
+
+  <h2 id="cookies">Cookies and similar storage</h2>
+  <p>
+    This website does not set cookies of its own. (Cloudflare may set a strictly necessary security cookie if it needs
+    to check that a visitor is not a bot.) If you choose to show the Google map, your browser remembers that choice on your
+    device (in local storage, under the name <code>{MAP_CONSENT_KEY}</code>) so the map loads straight away next time. Nothing
+    about that choice is sent to us. You can clear it below.
+  </p>
+  <p>
+    Once you load the map, Google may set its own cookies. Links to Instagram, Yelp and Google take you to their websites,
+    where their own policies apply.
+  </p>
+
+  <h2 id="choices">Your privacy choices</h2>
+  <div class="choices" data-choices>
+    <p data-choices-state>Checking whether this browser remembers a map choice…</p>
+    <button class="btn btn--quiet" type="button" data-forget hidden>Forget my map choice</button>
+  </div>
+  <p>
+    Wherever you live, you can ask us what information we hold about you, ask us to correct it, or ask us to delete it.
+    Call {settings.phone}, write to us at the studio address below, or come by the studio. We may need to confirm it is you before we act, and we will answer within
+    45 days. You will not be treated differently for asking.
+  </p>
+  <p>
+    <strong>Do Not Track and Global Privacy Control.</strong> We don't track visitors across websites or sell their
+    information, so there is nothing for these signals to switch off. We treat them as a request not to, all the same.
+  </p>
+
+  <h2 id="keep">How long we keep it</h2>
+  <p>
+    Form messages are kept for as long as we need them to reply and keep appointment records, and then deleted. Cloudflare
+    keeps routine server records for a short period for security.
+  </p>
+
+  <h2 id="children">Children</h2>
+  <p>
+    Our services are for adults, and this website is not meant for children. We do not knowingly collect information from
+    anyone under 13. If you believe a child has sent us information, call us and we will delete it.
+  </p>
+
+  <h2 id="security">Security</h2>
+  <p>
+    The website is served only over an encrypted connection, and form messages go straight to the studio rather than being
+    stored on the website. No system is perfectly secure, so please don't send anything you would not want in a text message.
+  </p>
+
+  <h2 id="changes">Changes to this policy</h2>
+  <p>If we change how the website handles information, we will update this page and the date at the top.</p>
+
+  <h2 id="contact">Contact</h2>
+  <p>Questions or requests about your information:</p>
+  <address>
+    {settings.businessName}<br />
+    {settings.street}<br />
+    {settings.city}, {settings.state} {settings.zip}<br />
+    <a href={`tel:${settings.phoneTel}`}>{settings.phone}</a>
+  </address>
+</LegalPage>
+
+<style>
+  .choices {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    margin-block: var(--space-4) var(--space-5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+  }
+  code {
+    font-size: 0.9em;
+  }
+</style>
+
+<script>
+  import { MAP_CONSENT_KEY } from "../lib/consent";
+
+  const root = document.querySelector<HTMLElement>("[data-choices]");
+  if (root) {
+    const state = root.querySelector<HTMLElement>("[data-choices-state]")!;
+    const forget = root.querySelector<HTMLButtonElement>("[data-forget]")!;
+    const read = () => {
+      try {
+        return localStorage.getItem(MAP_CONSENT_KEY) === "yes";
+      } catch {
+        return false;
+      }
+    };
+    const render = (justCleared = false) => {
+      if (read()) {
+        state.textContent = "This browser remembers that you chose to show the Google map.";
+        forget.hidden = false;
+      } else {
+        state.textContent = justCleared
+          ? "Done. The map will wait for you to ask again."
+          : "This browser has no saved choices. The map waits until you ask for it.";
+        forget.hidden = true;
+      }
+    };
+    forget.addEventListener("click", () => {
+      try {
+        localStorage.removeItem(MAP_CONSENT_KEY);
+      } catch {
+        /* storage blocked: nothing was saved */
+      }
+      render(true);
+      state.focus();
+    });
+    state.tabIndex = -1;
+    state.setAttribute("role", "status");
+    render();
+  }
+</script>

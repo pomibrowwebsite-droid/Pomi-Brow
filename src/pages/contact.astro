@@ -3,10 +3,9 @@ import Base from "../layouts/Base.astro";
 import PageHeader from "../components/PageHeader.astro";
 import ContactForm from "../components/ContactForm.astro";
 import ReviewCount from "../components/ReviewCount.astro";
-import { getSiteSettings, getServices, getLearnArticles } from "../lib/content";
+import { getSiteSettings, getServices } from "../lib/content";
 
-const [settings, services, learn] = await Promise.all([getSiteSettings(), getServices(), getLearnArticles()]);
-const faqs = learn.filter((a) => a.showAsFaq);
+const [settings, services] = await Promise.all([getSiteSettings(), getServices()]);
 ---
 
 <Base
@@ -14,7 +13,6 @@ const faqs = learn.filter((a) => a.showAsFaq);
   description={`Book or ask a question. ${settings.businessName}, ${settings.street}, ${settings.city}, ${settings.state} ${settings.zip}. Call ${settings.phone}.`}
   settings={settings}
   services={services}
-  faqs={faqs}
   canonicalPath="/contact"
 >
   <PageHeader

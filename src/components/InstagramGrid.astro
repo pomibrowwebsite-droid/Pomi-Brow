@@ -55,6 +55,7 @@ const blank = { kind: "remote", src: "", srcset: "", width: 640, height: 640, al
               <a class="ig__tile" target="_blank" rel="noopener">
                 <Photo photo={blank} sizes="(min-width: 60rem) 18rem, 50vw" ratio="1 / 1" />
                 <Caption service="Instagram" detail="New" />
+                <span class="visually-hidden">(opens Instagram in a new tab)</span>
               </a>
             </li>
           </template>
@@ -83,7 +84,13 @@ const blank = { kind: "remote", src: "", srcset: "", width: 640, height: 640, al
     fetch("/api/instagram", { headers: { Accept: "application/json" } })
       .then((r): Promise<FeedBody | null> => (r.ok ? (r.json() as Promise<FeedBody>) : Promise.resolve(null)))
       .then((body) => {
-        const posts = body?.ok && Array.isArray(body.posts) ? body.posts.slice(0, count) : [];
+        // Only ever link out to Instagram itself, and only show https images, whatever the API returns.
+        const safe = (post: { permalink?: string; image?: string }) =>
+          typeof post.permalink === "string" &&
+          post.permalink.startsWith("https://www.instagram.com/") &&
+          typeof post.image === "string" &&
+          post.image.startsWith("https://");
+        const posts = body?.ok && Array.isArray(body.posts) ? body.posts.filter(safe).slice(0, count) : [];
         if (posts.length === 0) return;
         const tiles = posts.map((post, i) => {
           const li = template.content.firstElementChild!.cloneNode(true) as HTMLLIElement;

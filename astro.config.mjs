@@ -76,7 +76,13 @@ export default defineConfig({
     }),
     react(),
     // Under the home-only launch gate the sitemap lists the home page alone.
-    sitemap({ filter: (page) => !page.includes("/admin") && (!HOME_ONLY || new URL(page).pathname === "/") }),
+    // Form result pages (/thanks, /not-sent) are noindex and stay out of it too.
+    sitemap({
+      filter: (page) =>
+        !page.includes("/admin") &&
+        !["/thanks", "/not-sent", "/404"].includes(new URL(page).pathname) &&
+        (!HOME_ONLY || new URL(page).pathname === "/"),
+    }),
     instagramDevRoute(),
   ],
   image: {

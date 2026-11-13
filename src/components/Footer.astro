@@ -15,6 +15,21 @@ const servicePages = services.filter((s) => ["Eyebrows", "Eyes", "Lips", "Hair"]
 // Sanity appears here without a code change.
 const articles = await getLearnArticles();
 const learn = articles.slice(0, 5).map((a) => ({ label: a.title, href: `/learn/${a.slug}` }));
+const studio = [
+  { label: "About Pomi", href: "/about" },
+  { label: "Safety", href: "/safety" },
+  { label: "Aftercare", href: "/aftercare" },
+  { label: "FAQs", href: "/faqs" },
+  { label: "Contact", href: "/contact" },
+];
+// The policy pages every visitor should be able to find from anywhere.
+const legal = [
+  { label: "Privacy", href: "/privacy" },
+  { label: "Cookies", href: "/privacy#cookies" },
+  { label: "Accessibility", href: "/accessibility" },
+  { label: "Terms", href: "/terms" },
+  { label: "Your privacy choices", href: "/privacy#choices" },
+];
 ---
 
 <footer class="footer">
@@ -70,15 +85,33 @@ const learn = articles.slice(0, 5).map((a) => ({ label: a.title, href: `/learn/$
               <a href={l.href}>{l.label}</a>
             </li>
           ))}
-          <li><a href="/about">About Pomi</a></li>
-          <li><a href="/aftercare">Aftercare</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <p class="footer__head">Studio</p>
+        <ul class="footer__list">
+          {studio.map((l) => (
+            <li>
+              <a href={l.href}>{l.label}</a>
+            </li>
+          ))}
         </ul>
       </div>
     </div>
 
     <div class="footer__bottom">
       <p>© {year} {settings.businessName}. Prices subject to change.</p>
-      <p>Permanent makeup in Tustin, serving Irvine and Orange County.</p>
+      <nav class="footer__legal" aria-label="Policies">
+        <ul>
+          {legal.map((l) => (
+            <li>
+              <a href={l.href}>{l.label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <p class="footer__tagline">Permanent makeup in Tustin, serving Irvine and Orange County.</p>
     </div>
   </div>
 </footer>
@@ -162,6 +195,7 @@ const learn = articles.slice(0, 5).map((a) => ({ label: a.title, href: `/learn/$
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
+    align-items: center;
     gap: var(--space-2) var(--space-5);
     margin-top: var(--space-8);
     padding-top: var(--space-5);
@@ -171,9 +205,36 @@ const learn = articles.slice(0, 5).map((a) => ({ label: a.title, href: `/learn/$
   .footer__bottom p + p {
     margin: 0;
   }
+  .footer__tagline {
+    flex-basis: 100%;
+  }
+  .footer__legal ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-4);
+  }
+  .footer__legal a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .footer__legal a:hover {
+    color: var(--ink);
+  }
   @media (min-width: 48rem) {
     .footer__grid {
-      grid-template-columns: 1.6fr 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .footer__brand-col {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (min-width: 64rem) {
+    .footer__grid {
+      grid-template-columns: 1.6fr 1fr 1fr 1fr;
+    }
+    .footer__brand-col {
+      grid-column: auto;
     }
   }
 </style>

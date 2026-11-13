@@ -45,7 +45,6 @@ const gallery = allPhotos.filter((p) => !usedKeys.has(photoKey(p)));
 const related = learn
   .filter((a) => a.relatedService === service.slug)
   .sort((a, b) => Number(Boolean(b.serviceGuide)) - Number(Boolean(a.serviceGuide)));
-const faqs = learn.filter((a) => a.showAsFaq);
 
 const title = service.seoTitle || `${service.title} in Tustin, near Irvine | ${settings.businessName}`;
 const description =
@@ -65,7 +64,6 @@ const tagTone: Record<string, string> = {
   description={description}
   settings={settings}
   services={services}
-  faqs={faqs}
   canonicalPath={`/services/${service.slug}`}
 >
 {/* The work leads. Title, price and the call sit beside one photograph of this

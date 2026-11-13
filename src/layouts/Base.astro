@@ -13,12 +13,18 @@ interface Props {
   faqs?: LearnArticle[];
   canonicalPath?: string;
   ogImage?: string;
+  /** Keep this page out of search results (form result pages). */
+  noindex?: boolean;
 }
 
-const { title, description, settings, services = [], faqs = [], canonicalPath = "/", ogImage } = Astro.props;
+const { title, description, settings, services = [], faqs = [], canonicalPath = "/", ogImage, noindex = false } = Astro.props;
 const site = Astro.site ?? new URL("https://pomibbrowstudio.com");
 const canonical = new URL(canonicalPath, site).toString();
 const analyticsToken = import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN;
+
+// JSON-LD goes out through set:html, so a "<" in CMS text (e.g. "</script>") must not reach the
+// page raw. The \u003c escape is the same character to a JSON parser and inert to the HTML parser.
+const jsonLd = (data: unknown) => JSON.stringify(data).replace(/</g, "\\u003c");
 
 const sameAs = [settings.instagramUrl, settings.yelpUrl].filter(Boolean);
 
@@ -29,7 +35,7 @@ const business = {
   name: settings.businessName,
   url: site.origin,
   telephone: settings.phoneTel,
-  image: ogImage ? new URL(ogImage, site).toString() : undefined,
+  image: new URL(ogImage ?? "/og.jpg", site).toString(),
   address: {
     "@type": "PostalAddress",
     streetAddress: settings.street,
@@ -39,17 +45,9 @@ const business = {
     addressCountry: "US",
   },
   areaServed: ["Tustin", "Irvine", "Orange County"],
-  // The Yelp standing, declared so it can appear beside the listing in search results.
-  // yelpReviewCount is every review on the listing -- the number the average was computed
-  // from -- which is exactly what Google expects here. Read off the listing, not estimated.
-  aggregateRating: settings.yelpReviewCount
-    ? {
-        "@type": "AggregateRating",
-        ratingValue: settings.yelpRating,
-        bestRating: 5,
-        reviewCount: settings.yelpReviewCount,
-      }
-    : undefined,
+  // No aggregateRating: Google treats a business rating itself on its own site (here, the Yelp
+  // average) as a self-serving review and does not show it, and markup for reviews that are not
+  // on the page risks a structured-data manual action. The Yelp standing is shown as text.
   sameAs,
   openingHoursSpecification: settings.hours.map((h) => ({
     "@type": "OpeningHoursSpecification",
@@ -90,12 +88,23 @@ const faqSchema =
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    {/* Marks the page as scripted before first paint so .reveal blocks may start hidden. If the
+        reveal script has not started within 3s (blocked, failed), the mark comes off and
+        everything shows. Its CSP hash is computed at build time (scripts/csp-hashes.mjs). */}
+    <script is:inline>
+      document.documentElement.classList.add("js");
+      setTimeout(function () {
+        if (!document.documentElement.hasAttribute("data-reveal")) document.documentElement.classList.remove("js");
+      }, 3000);
+    </script>
     <title>{title}</title>
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon-32.png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <meta name="theme-color" content="#ffffff" />
     <meta property="og:type" content="website" />
@@ -103,10 +112,10 @@ const faqSchema =
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    {ogImage && <meta property="og:image" content={new URL(ogImage, site).toString()} />}
+    <meta property="og:image" content={new URL(ogImage ?? "/og.jpg", site).toString()} />
     <meta name="twitter:card" content="summary_large_image" />
-    <script type="application/ld+json" set:html={JSON.stringify(business)} />
-    {faqSchema && <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
+    <script type="application/ld+json" set:html={jsonLd(business)} />
+    {faqSchema && <script type="application/ld+json" set:html={jsonLd(faqSchema)} />}
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
@@ -125,10 +134,7 @@ const faqSchema =
         />
       )
     }
-  <!-- impeccable-live-start -->
-<script is:inline src="http://localhost:8400/live.js?token=2a207d92-1eed-460c-985e-c18f50916401"></script>
-<!-- impeccable-live-end -->
-</body>
+  </body>
 </html>
 
 <style>
@@ -150,6 +156,7 @@ const faqSchema =
 
 <script>
   // Scroll-entry reveal: gentle fade and lift as blocks enter the viewport.
+  document.documentElement.setAttribute("data-reveal", "");
   const blocks = document.querySelectorAll<HTMLElement>(".reveal");
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (reduce || !("IntersectionObserver" in window)) {

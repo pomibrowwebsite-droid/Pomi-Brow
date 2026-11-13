@@ -18,10 +18,9 @@ import ReviewCount from "../components/ReviewCount.astro";
 import InstagramGrid from "../components/InstagramGrid.astro";
 import ContactForm from "../components/ContactForm.astro";
 import Icon from "../components/Icon.astro";
-import { getSiteSettings, getServices, getLearnArticles, localPhoto } from "../lib/content";
+import { getSiteSettings, getServices, localPhoto } from "../lib/content";
 
-const [settings, services, learn] = await Promise.all([getSiteSettings(), getServices(), getLearnArticles()]);
-const faqs = learn.filter((a) => a.showAsFaq);
+const [settings, services] = await Promise.all([getSiteSettings(), getServices()]);
 
 // The seed bio's first paragraph is scaffolding; the build fails if it ever reaches the page.
 const bio = (settings.bio ?? []).filter((p) => !/placeholder/i.test(p));
@@ -35,7 +34,6 @@ const isPortrait = Boolean(settings.headshot);
   description="Pomi B. Brow Studio is one artist. Every appointment, from the first mapping to the six-week touch-up, is with Pomi herself."
   settings={settings}
   services={services}
-  faqs={faqs}
   canonicalPath="/about"
 >
   <PageHeader

@@ -179,6 +179,8 @@ const title = `${settings.businessName} | Natural permanent makeup in Tustin, ne
       a calendar that early made the process read as complex. Since 2026-09-27 its slot is
       Pomi herself -- a face, her words and four facts -- the way solo PMU studios open. */}
   {heroTiles.length > 0 && <Hero settings={settings} tiles={heroTiles} />}
+  {/* The hero carries the page's only h1; without it the page still needs one. */}
+  {heroTiles.length === 0 && <h1 class="visually-hidden">{settings.businessName}: {settings.locationLine}</h1>}
   <AboutPomi settings={settings} services={services} fallbackPhoto={aboutPhoto} />
   <InstagramGrid settings={settings} services={services} />
   <Reviews reviews={reviews} settings={settings} photos={reviewPhotos} services={services} />
