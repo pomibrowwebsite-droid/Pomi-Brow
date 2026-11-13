@@ -35,7 +35,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil
   if (hit) return hit;
 
   const envToken = env.INSTAGRAM_ACCESS_TOKEN?.trim();
-  if (!envToken) return json({ ok: false, error: "not-configured" }, 503);
+  // No token yet means the live feed is switched off, not that something broke: answer 200 so
+  // visitors' consoles stay clean, and the grid keeps the curated photos (it only swaps on ok).
+  if (!envToken) return json({ ok: false, error: "not-configured" });
 
   const { token, refresh } = await resolveToken({
     envToken,

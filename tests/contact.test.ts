@@ -182,6 +182,18 @@ test("clean strips control characters, newlines in single-line fields, and caps 
   assert.equal(clean(undefined, 5), "");
 });
 
+test("IPv4-mapped IPv6 keys by the IPv4 address", () => {
+  assert.equal(clientKey("::ffff:198.51.100.7"), "198.51.100.7");
+});
+
+test("formula-looking values are defused before forwarding, the phone keeps its +", async () => {
+  const { fetchLike, calls } = recorder();
+  await handleContact(post({ ...GOOD, name: "=HYPERLINK(\"x\")", phone: "+1 949 555 0100", message: "@SUM(1)" }), env, { fetch: fetchLike });
+  assert.equal(calls[0].body.name, "'=HYPERLINK(\"x\")");
+  assert.equal(calls[0].body.message, "'@SUM(1)");
+  assert.equal(calls[0].body.phone, "+1 949 555 0100");
+});
+
 test("phone and email checks", () => {
   assert.ok(isPhone("+1 (949) 427-7664"));
   assert.ok(!isPhone("call me"));

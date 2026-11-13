@@ -250,6 +250,13 @@ const nav = [
       panel.hidden = open;
     });
     panel.querySelectorAll("[data-nav-link]").forEach((a) => a.addEventListener("click", close));
+    // Tabbing out of the header closes the menu, so the open panel never sits over the
+    // element that now has focus (WCAG 2.4.11).
+    const header = toggle.closest("header");
+    header?.addEventListener("focusout", (e) => {
+      const next = (e as FocusEvent).relatedTarget as Node | null;
+      if (!panel.hidden && next && !header.contains(next)) close();
+    });
     // Escape closes an open menu and hands focus back to the button that opened it.
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape" || panel.hidden) return;

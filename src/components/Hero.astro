@@ -151,10 +151,18 @@ const categories = [
     vertical-align: top;
     color: var(--pink-ink);
   }
+  /* At rest the first word shows and the others wait. The loop runs only on a scripted page
+     (.js, set in the layout's head) that has not been paused, so a visitor without JavaScript --
+     who would get no Pause button -- sees a still line. */
   .hero__word {
     grid-area: 1 / 1;
     justify-self: start;
     opacity: 0;
+  }
+  .hero__word:first-child {
+    opacity: 1;
+  }
+  :global(.js) .hero__cycle:not([data-paused]) .hero__word {
     animation: hero-word-swap 16.8s var(--ease-out) infinite;
     animation-delay: calc(var(--i) * 2.4s);
   }
@@ -185,24 +193,10 @@ const categories = [
       filter: blur(4px);
     }
   }
-  /* Reduced motion, or paused by the visitor: the first word simply stays. Hover and keyboard
-     focus on the line hold it too. */
-  .hero__cycle[data-paused] .hero__word {
-    animation: none;
-  }
-  .hero__cycle[data-paused] .hero__word:first-child {
-    opacity: 1;
-  }
-  .hero__copy:hover .hero__word,
-  .hero__copy:focus-within .hero__word {
-    animation-play-state: paused;
-  }
+  /* Reduced motion: the first word simply stays, and there is nothing to pause. */
   @media (prefers-reduced-motion: reduce) {
-    .hero__word {
+    :global(.js) .hero__cycle:not([data-paused]) .hero__word {
       animation: none;
-    }
-    .hero__word:first-child {
-      opacity: 1;
     }
     .hero__pause {
       display: none;

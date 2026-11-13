@@ -64,6 +64,13 @@ export function clean(value: unknown, max: number, multiline = false): string {
 }
 
 export const isEmail = (s: string) => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(s);
+/**
+ * If the webhook ends in a spreadsheet (Zapier/Make to Google Sheets, a CSV export), a value
+ * starting with = + - @ would run as a formula when opened. Prefix those with an apostrophe,
+ * which spreadsheets read as "this is text" and email shows harmlessly.
+ */
+export const defuseFormula = (s: string) => (/^[=+\-@]/.test(s) ? `'${s}` : s);
+
 /** At least seven digits, the shortest local number a person could call back. */
 export const isPhone = (s: string) => (s.match(/\d/g) ?? []).length >= 7 && /^[\d\s()+.\-x]+$/i.test(s);
 
@@ -74,6 +81,9 @@ export const isPhone = (s: string) => (s.match(/\d/g) ?? []).length >= 7 && /^[\
 export function clientKey(ip: string | null): string {
   if (!ip) return "unknown";
   if (!ip.includes(":")) return ip;
+  // IPv4-mapped IPv6 (::ffff:1.2.3.4) is really that IPv4 address.
+  const mapped = ip.match(/(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (mapped) return mapped[1];
   const [head] = ip.split("::");
   const groups = ip.includes("::") ? head.split(":").filter(Boolean) : ip.split(":");
   return `${[...groups, "0", "0", "0", "0"].slice(0, 4).join(":")}::/64`;
@@ -182,7 +192,7 @@ async function evaluate(request: Request, env: ContactEnv, deps: ContactDeps): P
   // (a person on a no-JS browser), which is allowed; implausibly fast is a bot.
   const elapsed = Number(data.elapsed);
   if (data.elapsed !== undefined && data.elapsed !== "" && (!Number.isFinite(elapsed) || elapsed < MIN_FILL_MS)) {
-    log(`[contact] dropped: sent ${String(data.elapsed).slice(0, 20)}ms after load`);
+    log(`[contact] dropped: sent ${JSON.stringify(clean(data.elapsed, 20))}ms after load`);
     return ok();
   }
 
@@ -203,12 +213,13 @@ async function evaluate(request: Request, env: ContactEnv, deps: ContactDeps): P
     return fail(503, "not-configured");
   }
 
+  // The phone is digits by now (isPhone), so it keeps its leading "+".
   const payload = {
-    name,
+    name: defuseFormula(name),
     phone,
-    email,
+    email: defuseFormula(email),
     service,
-    message,
+    message: defuseFormula(message),
     submittedAt: new Date().toISOString(),
     page: sourcePath(request),
   };
