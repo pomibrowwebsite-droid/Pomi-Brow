@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /api/
 
-Sitemap: https://pomibbrowstudio.com/sitemap-index.xml
+Sitemap: https://pomibrow.com/sitemap-index.xml

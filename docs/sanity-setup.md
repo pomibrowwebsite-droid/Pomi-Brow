@@ -1,6 +1,6 @@
 # Sanity setup
 
-Pomi edits the site at **pomibbrowstudio.com/admin**. Everything she can change lives in Sanity:
+Pomi edits the site at **pomibrow.com/admin**. Everything she can change lives in Sanity:
 
 - services and prices, with cover photos and galleries;
 - Learn articles;
@@ -25,11 +25,8 @@ studio photo on the contact form. A slot with no photo shows its "Photo to come"
 
 ### 2. Allow the Studio to sign in
 
-sanity.io/manage → the project → **API → CORS origins** → add each origin below, ticking
-**Allow credentials**:
-
-- `https://pomibbrowstudio.com`
-- `http://localhost:4321`, for local development
+sanity.io/manage → the project → **API → CORS origins** → add `https://pomibrow.com`, ticking
+**Allow credentials**. That is the only origin the Studio runs from.
 
 ### 3. Load the current content
 

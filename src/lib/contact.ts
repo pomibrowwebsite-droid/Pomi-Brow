@@ -38,7 +38,7 @@ export const MIN_FILL_MS = 1500;
 export const HONEYPOT_FIELD = "pomi_hp_note";
 
 export const RESEND_ENDPOINT = "https://api.resend.com/emails";
-export const DEFAULT_FROM = "Pomi B. Brow Studio website <website@pomibbrowstudio.com>";
+export const DEFAULT_FROM = "Pomi B. Brow Studio website <website@pomibrow.com>";
 
 export const SENT_PATH = "/thanks";
 export const NOT_SENT_PATH = "/not-sent";
@@ -97,7 +97,7 @@ export function composeEmail(a: Appointment, from: string, to: string[]) {
     ["Email", a.email || "not given"],
     ["Service", serviceLabel(a.service) || "not chosen"],
   ];
-  const sentFrom = `Sent from the pomibbrowstudio.com appointment form${a.page ? ` (${a.page})` : ""}.`;
+  const sentFrom = `Sent from the pomibrow.com appointment form${a.page ? ` (${a.page})` : ""}.`;
   const html = `<div style="font-family:ui-sans-serif,system-ui,sans-serif;font-size:15px;line-height:1.6;color:#2b2326">
   <h2 style="font-size:18px;margin:0 0 16px">New appointment request</h2>
   <table cellpadding="0" cellspacing="0" style="margin:0 0 20px">

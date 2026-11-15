@@ -26,7 +26,7 @@
   //   RESEND_API_KEY    secret, from resend.com/api-keys
   //   APPOINTMENT_TO    where requests go (comma-separate several addresses)
   //   APPOINTMENT_FROM  optional; on a domain verified in Resend, default
-  //                     "Pomi B. Brow Studio website <website@pomibbrowstudio.com>"
+  //                     "Pomi B. Brow Studio website <website@pomibrow.com>"
   // keep_vars stops `wrangler deploy` from deleting plain variables typed into the dashboard
   // (secrets always survive), so APPOINTMENT_TO can be a plain variable without being wiped.
   "keep_vars": true,

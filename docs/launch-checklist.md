@@ -6,20 +6,20 @@ dashboard and with the client.
 
 ## Before go-live
 
-- [ ] **Connect the appointment form to Resend.** In Resend, verify `pomibbrowstudio.com`
+- [ ] **Connect the appointment form to Resend.** In Resend, verify `pomibrow.com`
       (Domains → Add; add the DNS records it lists in Cloudflare) and create an API key. Then on
       the `pomi-brow` Worker (Settings → Variables and secrets) add:
       - `RESEND_API_KEY`, type Secret.
       - `APPOINTMENT_TO`, the inbox that should get requests (comma-separate several).
       - `APPOINTMENT_FROM` only to change the sender from
-        `Pomi B. Brow Studio website <website@pomibbrowstudio.com>`.
+        `Pomi B. Brow Studio website <website@pomibrow.com>`.
       Until the key and recipient are set, the form tells visitors to call instead, and the
       Worker log shows `[contact] RESEND_API_KEY and APPOINTMENT_TO must both be set`. Send one
       test request; a failed send logs `[contact] Resend failed:` with Resend's reason.
 - [ ] **Confirm the rate limiter deployed.** `npx wrangler deploy` output should list the
       `CONTACT_LIMITER` binding. If the account cannot use it, the Worker logs
       `CONTACT_LIMITER binding missing` once per isolate.
-- [ ] **Confirm the domain.** `astro.config.mjs` `site` is `https://pomibbrowstudio.com`;
+- [ ] **Confirm the domain.** `astro.config.mjs` `site` is `https://pomibrow.com`;
       canonicals, the sitemap and robots.txt all use it.
 - [ ] **Cloudflare zone settings:** leave Rocket Loader, Email Address Obfuscation and any
       "JavaScript detections" off. They inject inline scripts the Content-Security-Policy

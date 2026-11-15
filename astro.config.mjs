@@ -63,7 +63,7 @@ function instagramDevRoute() {
 }
 
 export default defineConfig({
-  site: "https://pomibbrowstudio.com",
+  site: "https://pomibrow.com",
   output: "static",
   trailingSlash: "never",
   integrations: [

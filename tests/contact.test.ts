@@ -18,7 +18,7 @@ import {
 // Keep the endpoint's operational logging out of the test output.
 const handleContact = (req: Request, env: ContactEnv, deps: ContactDeps = {}) => rawHandle(req, env, { log: () => {}, ...deps });
 
-const SITE = "https://pomibbrowstudio.com";
+const SITE = "https://pomibrow.com";
 const GOOD = { name: "Ana", phone: "(949) 555-0100", message: "Do you do brow touch-ups?", elapsed: 9000 };
 
 function post(body: unknown, headers: Record<string, string> = {}, type = "application/json") {
@@ -62,10 +62,10 @@ test("emails a good submission through Resend and reports success", async () => 
 
 test("sends to every address in APPOINTMENT_TO and honours APPOINTMENT_FROM", async () => {
   const { fetchLike, calls } = recorder();
-  const custom: ContactEnv = { ...env, APPOINTMENT_TO: "a@example.com, b@example.com", APPOINTMENT_FROM: "Studio <hi@pomibbrowstudio.com>" };
+  const custom: ContactEnv = { ...env, APPOINTMENT_TO: "a@example.com, b@example.com", APPOINTMENT_FROM: "Studio <hi@pomibrow.com>" };
   await handleContact(post(GOOD), custom, { fetch: fetchLike });
   assert.deepEqual(calls[0].body.to, ["a@example.com", "b@example.com"]);
-  assert.equal(calls[0].body.from, "Studio <hi@pomibbrowstudio.com>");
+  assert.equal(calls[0].body.from, "Studio <hi@pomibrow.com>");
   assert.equal(calls[0].body.reply_to, undefined, "no reply-to without an email");
 });
 
