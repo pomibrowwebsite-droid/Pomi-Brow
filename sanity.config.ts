@@ -14,8 +14,9 @@ export default defineConfig({
   plugins: [structureTool({ structure })],
   schema: {
     types: schemaTypes,
-    // Site settings is a singleton; hide it from the "create new" menu.
-    templates: (prev) => prev.filter((t) => t.schemaType !== "siteSettings"),
+    // Site settings is a singleton, and each page's address is fixed in the code (/safety,
+    // /aftercare), so neither can be created from the "create new" menu.
+    templates: (prev) => prev.filter((t) => t.schemaType !== "siteSettings" && t.schemaType !== "page"),
   },
   document: {
     actions: (prev, { schemaType }) =>

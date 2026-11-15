@@ -12,6 +12,9 @@ export const structure: StructureResolver = (S) =>
         .title("Learn articles")
         .child(S.documentTypeList("learnArticle").title("Learn articles")),
       S.listItem()
+        .title("Pages")
+        .child(S.documentTypeList("page").title("Pages")),
+      S.listItem()
         .title("Reviews")
         .child(S.documentTypeList("review").title("Reviews").defaultOrdering([{ field: "order", direction: "asc" }])),
       S.divider(),

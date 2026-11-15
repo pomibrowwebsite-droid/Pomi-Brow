@@ -37,9 +37,9 @@ const {
   class: className,
 } = Astro.props;
 
-// Only gallery refs resolve today; a CMS-uploaded image (no ref) keeps the empty frame until the
-// content layer learns to build remote photos for slots.
-const photo = slot.photo?.ref ? resolveSeedPhoto(slot.photo) : undefined;
+// A gallery ref resolves to the repo's own optimised file; a photo uploaded in the Studio arrives
+// already built (src/lib/content.ts). With neither, the slot keeps its empty frame.
+const photo = slot.photo?.ref ? resolveSeedPhoto(slot.photo) : slot.uploaded;
 // Gallery folders that are not one service still name what the photograph shows.
 const FOLDER_LABELS: Record<string, string> = { brows: "Brows", studio: "The studio" };
 const folder = slot.photo?.ref?.split("/")[0] ?? "";

@@ -4,6 +4,8 @@
  * Every getter returns the same normalized shape either way.
  */
 import type { ImageMetadata } from "astro";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import imageUrlBuilder from "@sanity/image-url";
 import seedSettings from "../content/seed/siteSettings.json";
 import seedServices from "../content/seed/services.json";
@@ -30,8 +32,10 @@ export type Photo = PhotoCaption &
     | { kind: "remote"; src: string; srcset: string; width: number; height: number; alt: string }
   );
 
-/** A seed Instagram pick: a gallery ref, optionally with its own detail and alt. */
-type SeedPick = string | { ref: string; detail?: string; alt?: string; focus?: string };
+/** A seed Instagram pick: a gallery ref, optionally with its own detail and alt. From Sanity, a
+    photo uploaded in the Studio arrives as a ready Photo instead. */
+type SeedPick = string | { ref: string; detail?: string; alt?: string; focus?: string } | Photo;
+const isPhoto = (p: unknown): p is Photo => Boolean(p && typeof p === "object" && "kind" in p);
 
 /** A Sanity portable-text block array. Rendered by PortableText.astro. */
 export type PortableBlock = Record<string, any>;
@@ -211,18 +215,132 @@ function remotePhoto(img: any, alt: string): Photo | null {
   };
 }
 
-function normalizeSeedSettings(): SiteSettings {
-  const s = seedSettings as any;
+// ---------------------------------------------------------------------------------------------
+// Sanity. Every document is turned back into the seed's own shape and then goes through the same
+// normalisers as the seed, so a page cannot tell which source it was built from.
+//
+// The import (scripts/sanity-import.mjs) uploads the repo's gallery photos and marks each image
+// with the file it came from (`galleryRef`, hidden in the Studio). While an image's pixels are
+// still that file's, it renders from the repo's own optimised copy, exactly as before. A photo
+// Pomi uploads or replaces, or one she crops in the Studio, is served from Sanity's image CDN.
+// The hotspot is the crop point (object-position) either way.
+
+const ASSET = `asset->{url, originalFilename, sha1hash, metadata{dimensions}}`;
+const IMAGE = `{..., ${ASSET}}`;
+const SLOT = `{..., photo${IMAGE}}`;
+const SECTIONS = `sections[]{..., image${SLOT}, items[]{..., image${SLOT}}, sides[]{..., image${SLOT}}}`;
+
+const fileHashes = new Map<string, string | null>();
+/** sha1 of a repo gallery file, to tell whether a Sanity image is still that photograph. */
+function gallerySha1(ref: string): string | null {
+  if (!fileHashes.has(ref)) {
+    let hash: string | null = null;
+    try {
+      hash = createHash("sha1").update(readFileSync(`${process.cwd()}/src/assets/gallery/${ref}.jpg`)).digest("hex");
+    } catch {
+      /* not a repo photo */
+    }
+    fileHashes.set(ref, hash);
+  }
+  return fileHashes.get(ref)!;
+}
+
+/** The repo file a Sanity image still is, or undefined when it must come from Sanity. */
+function galleryRefOf(img: any): string | undefined {
+  const ref = typeof img?.galleryRef === "string" ? img.galleryRef : undefined;
+  if (!ref || !img.asset?.sha1hash) return undefined;
+  const c = img.crop;
+  if (c && [c.top, c.bottom, c.left, c.right].some((v: number | undefined) => (v ?? 0) > 0.001)) return undefined;
+  return gallerySha1(ref) === img.asset.sha1hash ? ref : undefined;
+}
+
+const percent = (n: number) => `${Math.round(n * 1000) / 10}%`;
+/** The Studio hotspot as a CSS object-position, "50% 85%". */
+export const hotspotFocus = (img: any): string | undefined =>
+  img?.hotspot && typeof img.hotspot.x === "number" ? `${percent(img.hotspot.x)} ${percent(img.hotspot.y)}` : undefined;
+
+/** Copy only the keys that hold a value, so a converted object has the seed's exact shape. */
+function defined<T extends object>(o: T): Partial<T> {
+  return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null)) as Partial<T>;
+}
+
+/** A Sanity image as a seed pick { ref, alt, detail, focus }, or a ready remote Photo. */
+function pickFromSanity(img: any, fallbackAlt: string, detail = img?.detail): SeedPick | undefined {
+  if (!img?.asset) return undefined;
+  const focus = hotspotFocus(img);
+  const ref = galleryRefOf(img);
+  if (ref) return defined({ ref, alt: img.alt, detail, focus }) as SeedPick;
+  const photo = remotePhoto(img, img.alt || fallbackAlt);
+  return photo ? { ...photo, ...defined({ detail, focus }) } : undefined;
+}
+
+/** A Sanity imageSlot as the seed's { ratio, shot, photo: { ref, ... } } or with an uploaded photo. */
+function slotFromSanity(slot: any): ImageSlot | undefined {
+  if (!slot) return undefined;
+  const { photo, _type, _key, ...rest } = slot;
+  const pick = pickFromSanity(photo, slot.shot ?? "");
+  if (!pick) return stripSanity(rest);
+  if (isPhoto(pick)) return { ...stripSanity(rest), uploaded: pick };
+  return { ...stripSanity(rest), photo: pick as ImageSlot["photo"] };
+}
+
+/** Drop Sanity's bookkeeping (_key, _type, nulls from projections) all the way down. */
+function stripSanity(value: any): any {
+  if (Array.isArray(value)) return value.map(stripSanity);
+  if (!value || typeof value !== "object") return value;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value)) {
+    if (k.startsWith("_") || v === null || v === undefined) continue;
+    out[k] = stripSanity(v);
+  }
+  return out;
+}
+
+const SECTION_TYPE: Record<string, string> = {
+  sectionFacts: "facts",
+  sectionStatement: "statement",
+  sectionGrid: "grid",
+  sectionSequence: "sequence",
+  sectionCompare: "compare",
+  sectionFaq: "faq",
+  sectionCta: "cta",
+};
+
+/** Studio sections ({ _type: "sectionGrid", ... }) as the seed's ({ type: "grid", ... }). */
+function sectionsFromSanity(sections: any[] | null | undefined): Section[] | undefined {
+  if (!Array.isArray(sections)) return undefined;
+  return sections.map((s) => {
+    const { _type, _key, image, items, sides, ...rest } = s;
+    const out: Record<string, unknown> = { type: SECTION_TYPE[_type] ?? _type, ...stripSanity(rest) };
+    if (image) out.image = slotFromSanity(image);
+    const block = (b: any) => {
+      const { image: slot, ...fields } = b;
+      return { ...stripSanity(fields), ...(slot ? { image: slotFromSanity(slot) } : {}) };
+    };
+    if (items) out.items = items.map(block);
+    if (sides) out.sides = sides.map(block);
+    return out as unknown as Section;
+  });
+}
+
+/** Portable-text paragraphs as plain strings (the bio). */
+function paragraphsFromSanity(blocks: unknown): string[] {
+  return portableToParagraphs(blocks);
+}
+
+function normalizeSeedSettings(raw: any = seedSettings): SiteSettings {
+  const s = raw;
   return {
     ...s,
     hours: s.hours ?? [],
     bookingHref: s.bookingUrl || `tel:${s.phoneTel}`,
     instagramLiveFeed: s.instagramLiveFeed !== false,
-    instagramPicks: (s.instagramPicks as SeedPick[])
+    instagramPicks: ((s.instagramPicks ?? []) as SeedPick[])
       .map((pick) => {
-        const { ref, detail, alt } = typeof pick === "string" ? { ref: pick } : pick;
+        if (isPhoto(pick)) return pick;
+        const { ref, detail, alt, focus } = typeof pick === "string" ? { ref: pick } as { ref: string; detail?: string; alt?: string; focus?: string } : pick;
         const photo = localPhoto(ref, alt);
-        return photo && { ...photo, detail };
+        return photo && { ...photo, detail, ...(focus ? { focus } : {}) };
       })
       .filter((p): p is Photo => Boolean(p)),
     bio: s.bio ?? [],
@@ -230,7 +348,11 @@ function normalizeSeedSettings(): SiteSettings {
     yelpRating: s.yelpRating ?? 5,
     yelpOtherReviewCount: s.yelpOtherReviewCount ?? 0,
     // A gallery ref, e.g. "pomi/portrait" -- her Instagram profile photo until she supplies one.
-    headshot: s.headshot ? localPhoto(s.headshot, "Pomi, permanent makeup artist") : null,
+    headshot: isPhoto(s.headshot)
+      ? s.headshot
+      : s.headshot
+        ? localPhoto(typeof s.headshot === "string" ? s.headshot : s.headshot.ref, "Pomi, permanent makeup artist")
+        : null,
   };
 }
 
@@ -249,31 +371,50 @@ function catalogueCaption(ref: string): string | undefined {
 
 function seedCover(pick: SeedPick | undefined): Photo | undefined {
   if (!pick) return undefined;
+  if (isPhoto(pick)) return pick;
   const { ref, detail, alt, focus } = typeof pick === "string" ? { ref: pick } : (pick as any);
   const photo = localPhoto(ref, alt);
   return photo ? { ...photo, detail: detail ?? catalogueCaption(ref), focus } : undefined;
 }
 
-function normalizeSeedServices(): Service[] {
-  return (seedServices as any[])
+/** A service's gallery: an explicit list (from Sanity) or every photo in its repo folder. */
+function serviceGallery(s: any): Photo[] {
+  if (Array.isArray(s.gallery)) {
+    return (s.gallery as SeedPick[])
+      .map((pick) => {
+        if (isPhoto(pick)) return pick;
+        const { ref, alt, detail, focus } = typeof pick === "string" ? ({ ref: pick } as any) : (pick as any);
+        const photo = localPhoto(ref, alt);
+        return photo && { ...photo, ...defined({ detail, focus }) };
+      })
+      .filter((p): p is Photo => Boolean(p));
+  }
+  return s.galleryFolder ? localGallery(s.galleryFolder) : [];
+}
+
+function normalizeSeedServices(rows: any[] = seedServices as any[]): Service[] {
+  return rows
     .map((s) => ({
       ...s,
       cover: seedCover(s.cover),
-      gallery: s.galleryFolder ? localGallery(s.galleryFolder) : [],
+      gallery: serviceGallery(s),
       showOnHome: s.showOnHome !== false,
     }))
     .sort((a, b) => a.order - b.order);
 }
 
-function normalizeSeedLearn(): LearnArticle[] {
-  return (seedLearn as any[]).map((a) => ({ ...a, cover: seedCover(a.cover) }));
+function normalizeSeedLearn(rows: any[] = seedLearn as any[]): LearnArticle[] {
+  return rows.map((a) => ({ ...a, cover: seedCover(a.cover) }));
 }
 
-function normalizeSeedReviews(): Review[] {
-  return (seedReviews as any[]).map((r) => ({ ...r, isPlaceholder: Boolean(r.isPlaceholder) }));
+function normalizeSeedReviews(rows: any[] = seedReviews as any[]): Review[] {
+  return rows.map((r) => ({ ...r, isPlaceholder: Boolean(r.isPlaceholder) }));
 }
 
-async function client() {
+async function client(): Promise<{ fetch: (query: string, params?: Record<string, unknown>) => Promise<any> }> {
+  // The parity check (scripts/sanity-parity.mjs) builds from the import's own output instead
+  // of a live project, so the two sources can be compared page by page.
+  if (process.env.SANITY_FIXTURE) return (await import("./sanity-fixture")).fixtureClient(process.env.SANITY_FIXTURE);
   const mod = await import("sanity:client");
   return mod.sanityClient;
 }
@@ -281,48 +422,48 @@ async function client() {
 export async function getSiteSettings(): Promise<SiteSettings> {
   if (!usingSanity) return normalizeSeedSettings();
   const c = await client();
-  const s = await c.fetch(`*[_type == "siteSettings"][0]{
-    ..., instagramPicks[]{..., asset->{url, metadata{dimensions}}}, headshot{..., asset->{url, metadata{dimensions}}}
-  }`);
+  const s = await c.fetch(`*[_id == "siteSettings"][0]{..., instagramPicks[]${IMAGE}, headshot${IMAGE}}`);
   if (!s) return normalizeSeedSettings();
-  const seed = normalizeSeedSettings();
-  return {
-    ...seed,
-    ...s,
-    hours: s.hours ?? [],
-    bookingHref: s.bookingUrl || `tel:${s.phoneTel ?? seed.phoneTel}`,
-    instagramLiveFeed: s.instagramLiveFeed ?? seed.instagramLiveFeed,
-    instagramPicks: (s.instagramPicks ?? [])
-      .map((img: any) => {
-        const photo = remotePhoto(img, img.alt ?? `@${s.instagramHandle} on Instagram`);
-        return photo && { ...photo, ...captionFromAlt(img.alt) };
+  const { instagramPicks, headshot, bio, ...rest } = s;
+  const handle = rest.instagramHandle ?? (seedSettings as any).instagramHandle;
+  const paragraphs = paragraphsFromSanity(bio);
+  return normalizeSeedSettings({
+    // A field left empty in the Studio falls back to the seed rather than breaking the page.
+    ...(seedSettings as any),
+    ...stripSanity(rest),
+    instagramPicks: ((instagramPicks ?? []) as any[])
+      .map((img) => {
+        const pick = pickFromSanity(img, `@${handle} on Instagram`);
+        // An uploaded pick has no folder to name its service; its alt says it ("Lip Tint, healed").
+        return pick && isPhoto(pick) ? { ...defined(captionFromAlt(img.alt)), ...pick } : pick;
       })
       .filter(Boolean),
-    bio: portableToParagraphs(s.bio),
-    bioIsPlaceholder: false,
-    yelpRating: s.yelpRating ?? seed.yelpRating,
-    yelpReviewCount: s.yelpReviewCount ?? seed.yelpReviewCount,
-    yelpOtherReviewCount: s.yelpOtherReviewCount ?? seed.yelpOtherReviewCount,
-    headshot: remotePhoto(s.headshot, `Pomi, permanent makeup artist`),
-  };
+    headshot: pickFromSanity(headshot, "Pomi, permanent makeup artist") ?? null,
+    bio: paragraphs,
+    bioIsPlaceholder: paragraphs.some((p) => /placeholder/i.test(p)),
+  });
 }
 
 export async function getServices(): Promise<Service[]> {
   if (!usingSanity) return normalizeSeedServices();
   const c = await client();
-  const rows = await c.fetch(`*[_type == "service"] | order(order asc){
-    ..., "slug": slug.current,
-    cover{..., asset->{url, metadata{dimensions}}},
-    gallery[]{..., asset->{url, metadata{dimensions}}}
+  const rows: any[] = await c.fetch(`*[_type == "service"] | order(order asc){
+    ..., "slug": slug.current, cover${IMAGE}, gallery[]${IMAGE}
   }`);
   if (!rows?.length) return normalizeSeedServices();
-  return rows.map((s: any) => ({
-    ...s,
-    gallery: (s.gallery ?? [])
-      .map((img: any) => remotePhoto(img, img.caption ? `${s.title}: ${img.caption}` : `${s.title} by Pomi B. Brow Studio`))
-      .filter(Boolean),
-    showOnHome: s.showOnHome !== false,
-  }));
+  return normalizeSeedServices(
+    rows.map(({ cover, gallery, description, ...rest }) => ({
+      ...stripSanity(rest),
+      // Portable text keeps its _type and _key: PortableText.astro reads them.
+      ...(description ? { description } : {}),
+      cover: pickFromSanity(cover, `${rest.title} by Pomi B. Brow Studio`),
+      gallery: ((gallery ?? []) as any[])
+        .map((img) =>
+          pickFromSanity(img, img.caption ? `${rest.title}: ${img.caption}` : `${rest.title} by Pomi B. Brow Studio`, img.caption),
+        )
+        .filter(Boolean),
+    })),
+  );
 }
 
 /**
@@ -339,31 +480,46 @@ export function visibleReviews(reviews: Review[], limit = 3): Review[] {
 export async function getReviews(): Promise<Review[]> {
   if (!usingSanity) return normalizeSeedReviews();
   const c = await client();
-  const rows = await c.fetch(`*[_type == "review" && showOnHome == true] | order(order asc){
+  const rows: any[] = await c.fetch(`*[_type == "review" && showOnHome == true] | order(order asc){
     ..., "serviceSlug": service->slug.current
   }`);
   if (!rows?.length) return [];
-  return rows.map((r: any) => ({ ...r, isPlaceholder: false }));
+  return normalizeSeedReviews(rows.map(({ service, ...rest }) => stripSanity(rest)));
 }
 
-/**
- * A slide-style page that is not a Learn article (Safety, Aftercare). Seed only for now: the
- * copy lives in src/content/seed/pages.json until a `page` document type exists in the CMS.
- */
+/** A slide-style page that is not a Learn article (Safety, Aftercare). */
 export async function getPage(slug: string): Promise<SectionPage | null> {
-  const page = (seedPages as SectionPage[]).find((p) => p.slug === slug);
-  return page ?? null;
+  const seed = (seedPages as SectionPage[]).find((p) => p.slug === slug) ?? null;
+  if (!usingSanity) return seed;
+  const c = await client();
+  const p = await c.fetch(`*[_type == "page" && slug.current == $slug][0]{..., "slug": slug.current, lead${SLOT}, ${SECTIONS}}`, { slug });
+  if (!p) return seed;
+  const { lead, sections, ...rest } = p;
+  return {
+    ...stripSanity(rest),
+    ...(lead ? { lead: slotFromSanity(lead) } : {}),
+    sections: sectionsFromSanity(sections) ?? [],
+  } as SectionPage;
 }
 
 export async function getLearnArticles(): Promise<LearnArticle[]> {
   if (!usingSanity) return normalizeSeedLearn();
   const c = await client();
-  const rows = await c.fetch(`*[_type == "learnArticle"]{
-    title, "slug": slug.current, summary, body, sections, lead, seoTitle, serviceGuide, showAsFaq,
-    cover{..., asset->{url, metadata{dimensions}}},
-    "relatedService": relatedService->slug.current
+  const rows: any[] = await c.fetch(`*[_type == "learnArticle"] | order(order asc, title asc){
+    ..., "slug": slug.current, "relatedService": relatedService->slug.current,
+    cover${IMAGE}, lead${SLOT}, ${SECTIONS}
   }`);
-  return rows?.length ? rows : normalizeSeedLearn();
+  if (!rows?.length) return normalizeSeedLearn();
+  return normalizeSeedLearn(
+    rows.map(({ cover, lead, sections, body, relatedService, order, ...rest }) => ({
+      ...stripSanity(rest),
+      relatedService: relatedService ?? null,
+      ...(body ? { body } : {}),
+      ...(sections ? { sections: sectionsFromSanity(sections) } : {}),
+      ...(lead ? { lead: slotFromSanity(lead) } : {}),
+      cover: pickFromSanity(cover, rest.title),
+    })),
+  );
 }
 
 export function formatPrice(n: number): string {

@@ -63,7 +63,7 @@ Optional: `INSTAGRAM_HANDLE` sets the handle used in fallback alt text. It defau
 Redeploy so the new variables apply, then open:
 
 ```
-https://pomibbrowstudio.com/api/instagram
+https://pomibrow.com/api/instagram
 ```
 
 Expected: JSON with `"ok":true`, four posts, and `"refresh":"auto"`.

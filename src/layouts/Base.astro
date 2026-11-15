@@ -18,7 +18,7 @@ interface Props {
 }
 
 const { title, description, settings, services = [], faqs = [], canonicalPath = "/", ogImage, noindex = false } = Astro.props;
-const site = Astro.site ?? new URL("https://pomibbrowstudio.com");
+const site = Astro.site ?? new URL("https://pomibrow.com");
 const canonical = new URL(canonicalPath, site).toString();
 const analyticsToken = import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN;
 

@@ -1,4 +1,5 @@
 import { defineField, defineType } from "sanity";
+import { galleryRefField, photoFields } from "./photo";
 
 export const siteSettings = defineType({
   name: "siteSettings",
@@ -70,12 +71,12 @@ export const siteSettings = defineType({
       name: "instagramPicks",
       title: "Instagram grid on the home page",
       type: "array",
-      of: [{ type: "image", options: { hotspot: true }, fields: [defineField({ name: "alt", type: "string" })] }],
+      of: [{ type: "image", options: { hotspot: true }, fields: photoFields }],
       description: "Four photos shown until the live feed loads, and whenever it can't.",
     }),
     defineField({ name: "aboutHeading", type: "string" }),
     defineField({ name: "bio", title: "About Pomi", type: "array", of: [{ type: "block" }] }),
-    defineField({ name: "headshot", type: "image", options: { hotspot: true } }),
+    defineField({ name: "headshot", type: "image", options: { hotspot: true }, fields: [galleryRefField] }),
     defineField({ name: "metaDescription", type: "text", rows: 3 }),
   ],
   preview: { prepare: () => ({ title: "Site settings" }) },

@@ -2,6 +2,7 @@
 // Studio renders exactly like one from the seed. Keep the two in step.
 import { defineArrayMember, defineField, defineType } from "sanity";
 import { LAYOUTS as SITE_LAYOUTS, type BlockLayout } from "../../src/lib/sections";
+import { photoFields } from "./photo";
 
 const RATIOS = ["5 / 2", "4 / 5", "3 / 2", "1 / 1"];
 
@@ -41,7 +42,7 @@ export const imageSlot = defineType({
       description: "Written inside the empty frame until a photo is added.",
       validation: (r) => r.required(),
     }),
-    defineField({ name: "photo", type: "image", options: { hotspot: true }, fields: [defineField({ name: "alt", type: "string" })] }),
+    defineField({ name: "photo", type: "image", options: { hotspot: true }, fields: photoFields }),
   ],
   preview: { select: { title: "shot", subtitle: "ratio" } },
 });
