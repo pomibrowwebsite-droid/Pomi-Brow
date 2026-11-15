@@ -1,9 +1,10 @@
 import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
-import { schemaTypes } from "./cms/schema";
+import { schemaTypes, SINGLETONS } from "./cms/schema";
 import { structure } from "./cms/structure";
 
-const projectId = import.meta.env.PUBLIC_SANITY_PROJECT_ID || "placeholder";
+// The site build sets PUBLIC_*; the Sanity CLI (schema/document validation) only passes SANITY_STUDIO_*.
+const projectId = import.meta.env.PUBLIC_SANITY_PROJECT_ID || import.meta.env.SANITY_STUDIO_PROJECT_ID || "placeholder";
 const dataset = import.meta.env.PUBLIC_SANITY_DATASET || "production";
 
 export default defineConfig({
@@ -14,13 +15,14 @@ export default defineConfig({
   plugins: [structureTool({ structure })],
   schema: {
     types: schemaTypes,
-    // Site settings is a singleton, and each page's address is fixed in the code (/safety,
-    // /aftercare), so neither can be created from the "create new" menu.
-    templates: (prev) => prev.filter((t) => t.schemaType !== "siteSettings" && t.schemaType !== "page"),
+    // Studio details and the Home page are one of a kind, and each page's address is fixed in
+    // the code (/safety, /aftercare), so none of them can be created from the "create new" menu.
+    templates: (prev) => prev.filter((t) => !SINGLETONS.includes(t.schemaType) && t.schemaType !== "page"),
   },
   document: {
+    // Nothing the site depends on can be deleted or unpublished by accident.
     actions: (prev, { schemaType }) =>
-      schemaType === "siteSettings"
+      SINGLETONS.includes(schemaType) || schemaType === "page"
         ? prev.filter((a) => !["unpublish", "delete", "duplicate"].includes(a.action ?? ""))
         : prev,
   },

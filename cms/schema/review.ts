@@ -6,7 +6,7 @@ export const review = defineType({
   type: "document",
   description: "A real review copied from Yelp or Google. Never write one yourself.",
   fields: [
-    defineField({ name: "quote", type: "text", rows: 4, validation: (r) => r.required() }),
+    defineField({ name: "quote", title: "The review, word for word", type: "text", rows: 4, validation: (r) => r.required() }),
     defineField({
       name: "reviewer",
       title: "Reviewer name as shown on Yelp",

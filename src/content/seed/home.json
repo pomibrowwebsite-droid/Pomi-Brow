@@ -1,0 +1,36 @@
+{
+  "heroHeadline": "Perfect brows for every",
+  "heroOccasions": ["meeting", "night out", "workout", "brunch", "errand", "pilates class", "drop off"],
+  "heroIntro": "Permanent makeup mapped, measured, and drawn by one artist, so the result looks like you on a good day.",
+  "heroNote": "Every service is two visits: the session, then a perfecting touch-up around six weeks later.",
+  "heroCaption": "Healed results and before-and-afters. All of it Pomi's own work.",
+  "heroPhotos": [
+    { "ref": "microblading-shading/01", "focus": "50% 45%", "alt": "Healed microblading and shading on both brows, by Pomi" },
+    { "ref": "eyeliner/01", "focus": "50% 30%", "alt": "Healed permanent eyeliner along the upper lash line" },
+    { "ref": "lip-tint/03", "focus": "50% 50%", "alt": "Lip tint before and after: the natural lip above, the healed colour below" },
+    { "ref": "scalp-micropigmentation/01", "focus": "50% 50%", "alt": "Scalp micropigmentation before and after along the hairline" },
+    { "ref": "ombre-powder-brows/02", "focus": "50% 40%", "alt": "Healed ombre powder brows with a soft gradient" },
+    { "ref": "lash-enhancement/01", "focus": "50% 50%", "alt": "Lash enhancement before and after, a fine line set between the lashes" },
+    { "ref": "microblading/01", "focus": "50% 45%", "alt": "Healed microblading on both brows, six weeks after the touch-up" },
+    { "ref": "microblading/05", "focus": "50% 45%", "alt": "Healed microblading, fine individual hair strokes" },
+    { "ref": "eyeliner/03", "focus": "50% 45%", "alt": "Healed permanent eyeliner, close up" }
+  ],
+  "aboutFacts": [
+    { "value": "10 years", "label": "in business" },
+    { "value": "Free", "label": "consultations" },
+    { "value": "By appointment", "label": "only" },
+    { "value": "Tustin", "label": "serving Irvine and Orange County" }
+  ],
+  "aboutPhoto": { "ref": "microblading-shading/06", "alt": "Healed microblading and shading on a client in her forties, by Pomi" },
+  "workHeading": "Recent work, as it heals.",
+  "workIntro": "Pomi posts new results most weeks. The newest are here; the feed is the whole portfolio.",
+  "pricesHeading": "Services and prices",
+  "pricesIntro": "Every service is two appointments: the first session, then a perfecting touch-up around six weeks later, once it has healed.",
+  "extrasHeading": "Touch-ups and correction",
+  "extrasIntro": "For clients whose work is already healed.",
+  "pricesAsOf": "May 2026",
+  "faqHeading": "The questions everyone asks first.",
+  "faqIntro": "Short answers here. Longer ones, with photos, in Learn.",
+  "formHeading": "Request an appointment.",
+  "formIntro": "Tell Pomi what you have in mind and she will call or text you to find a time. Not sure which service fits? Ask that too. Pomi answers herself."
+}

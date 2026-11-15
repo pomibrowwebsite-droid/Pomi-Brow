@@ -1,15 +1,17 @@
 ---
 // Services and prices as a bento grid: one card per service, an extras card for maintenance and correction.
 // Everything here is editable from the CMS.
-import type { Service } from "../lib/content";
+import type { Service, HomePage } from "../lib/content";
 import { formatPrice } from "../lib/content";
 import Icon from "./Icon.astro";
 import Photo from "./Photo.astro";
 
 interface Props {
   services: Service[];
+  /** The section's words (Home page in the Studio). */
+  home: Pick<HomePage, "pricesHeading" | "pricesIntro" | "extrasHeading" | "extrasIntro" | "pricesAsOf">;
 }
-const { services } = Astro.props;
+const { services, home } = Astro.props;
 
 const main = services.filter((s) => s.showOnHome && ["Eyebrows", "Eyes", "Lips", "Hair"].includes(s.category));
 const extras = services.filter((s) => s.showOnHome && ["Maintenance", "Correction"].includes(s.category));
@@ -29,9 +31,9 @@ function priceLabel(s: Service) {
 <section class="prices section" id="services" aria-labelledby="services-heading">
   <div class="page">
     <div class="section-head reveal">
-      <h2 id="services-heading">Services and prices</h2>
+      <h2 id="services-heading">{home.pricesHeading}</h2>
       <p class="lede">
-        Every service is two appointments: the first session, then a perfecting touch-up around six weeks later, once it has healed.
+        {home.pricesIntro}
       </p>
     </div>
 
@@ -78,8 +80,8 @@ function priceLabel(s: Service) {
                 />
               </div>
             )}
-            <h3 class="service__title">Touch-ups and correction</h3>
-            <p class="service__summary">For clients whose work is already healed.</p>
+            <h3 class="service__title">{home.extrasHeading}</h3>
+            <p class="service__summary">{home.extrasIntro}</p>
             <ul class="extras">
               {extras.map((s) => (
                 <li>
@@ -96,7 +98,7 @@ function priceLabel(s: Service) {
       }
     </ul>
 
-    <p class="prices__foot">Prices current as of May 2026 and subject to change.</p>
+    <p class="prices__foot">Prices current as of {home.pricesAsOf} and subject to change.</p>
   </div>
 </section>
 

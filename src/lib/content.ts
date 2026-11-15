@@ -12,6 +12,7 @@ import seedServices from "../content/seed/services.json";
 import seedReviews from "../content/seed/reviews.json";
 import seedLearn from "../content/seed/learn.json";
 import seedPages from "../content/seed/pages.json";
+import seedHome from "../content/seed/home.json";
 import catalogue from "../assets/gallery/catalogue.json";
 import type { ImageSlot, Section, SectionPage, SeedPhotoRef } from "./sections";
 
@@ -96,6 +97,34 @@ export interface LearnArticle {
       that service page's reading list. */
   serviceGuide?: boolean;
   showAsFaq: boolean;
+}
+
+/** The home page's own words and photos. Everything else on it comes from the other getters. */
+export interface HomePage {
+  heroHeadline: string;
+  /** The words the headline cycles through; the first is the resting state. */
+  heroOccasions: string[];
+  heroIntro: string;
+  /** Follows the location line under the hero actions. */
+  heroNote: string;
+  heroCaption: string;
+  /** One per fixed position in the hero wall (index.astro HERO_POSITIONS); null leaves it out. */
+  heroPhotos: (Photo | null)[];
+  aboutFacts: { value: string; label: string }[];
+  /** Beside the bio when there is no headshot. */
+  aboutPhoto: Photo | null;
+  workHeading: string;
+  workIntro: string;
+  pricesHeading: string;
+  pricesIntro: string;
+  extrasHeading: string;
+  extrasIntro: string;
+  /** "May 2026": from Sanity, the month any service was last changed. */
+  pricesAsOf: string;
+  faqHeading: string;
+  faqIntro: string;
+  formHeading: string;
+  formIntro: string;
 }
 
 export interface Hours {
@@ -400,7 +429,8 @@ function normalizeSeedServices(rows: any[] = seedServices as any[]): Service[] {
       gallery: serviceGallery(s),
       showOnHome: s.showOnHome !== false,
     }))
-    .sort((a, b) => a.order - b.order);
+    // A service added without a position goes last rather than scrambling the list.
+    .sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
 }
 
 function normalizeSeedLearn(rows: any[] = seedLearn as any[]): LearnArticle[] {
@@ -505,7 +535,7 @@ export async function getPage(slug: string): Promise<SectionPage | null> {
 export async function getLearnArticles(): Promise<LearnArticle[]> {
   if (!usingSanity) return normalizeSeedLearn();
   const c = await client();
-  const rows: any[] = await c.fetch(`*[_type == "learnArticle"] | order(order asc, title asc){
+  const rows: any[] = await c.fetch(`*[_type == "learnArticle"] | order(coalesce(order, 9999) asc, title asc){
     ..., "slug": slug.current, "relatedService": relatedService->slug.current,
     cover${IMAGE}, lead${SLOT}, ${SECTIONS}
   }`);
@@ -520,6 +550,50 @@ export async function getLearnArticles(): Promise<LearnArticle[]> {
       cover: pickFromSanity(cover, rest.title),
     })),
   );
+}
+
+/** A home-page pick (seed { ref, alt, focus } or a ready Photo) as a Photo, focus kept. */
+function homePhoto(pick: SeedPick | null | undefined): Photo | null {
+  if (!pick) return null;
+  if (isPhoto(pick)) return pick;
+  const { ref, alt, focus } = typeof pick === "string" ? ({ ref: pick } as any) : (pick as any);
+  const photo = localPhoto(ref, alt);
+  return photo ? { ...photo, ...defined({ focus }) } : null;
+}
+
+function normalizeHome(raw: any = seedHome): HomePage {
+  return {
+    ...raw,
+    heroPhotos: ((raw.heroPhotos ?? []) as SeedPick[]).map(homePhoto),
+    aboutPhoto: homePhoto(raw.aboutPhoto),
+  };
+}
+
+const monthYear = (iso: string | undefined): string | undefined => {
+  const d = iso ? new Date(iso) : null;
+  return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "America/Los_Angeles" }) : undefined;
+};
+
+export async function getHomePage(): Promise<HomePage> {
+  if (!usingSanity) return normalizeHome();
+  const c = await client();
+  const h = await c.fetch(`*[_id == "homePage"][0]{
+    ..., heroPhotos[]${IMAGE}, aboutPhoto${IMAGE},
+    "pricesUpdated": *[_type == "service"] | order(_updatedAt desc)[0]._updatedAt
+  }`);
+  if (!h) return normalizeHome();
+  const { heroPhotos, aboutPhoto, pricesUpdated, heroOccasions, aboutFacts, ...rest } = h;
+  const seed = seedHome as any;
+  return normalizeHome({
+    // A field left empty in the Studio falls back to today's wording rather than a gap.
+    ...seed,
+    ...stripSanity(rest),
+    ...(heroOccasions?.length ? { heroOccasions } : {}),
+    ...(aboutFacts?.length ? { aboutFacts: stripSanity(aboutFacts) } : {}),
+    heroPhotos: Array.isArray(heroPhotos) ? heroPhotos.map((img: any) => pickFromSanity(img, "Healed work by Pomi") ?? null) : seed.heroPhotos,
+    aboutPhoto: aboutPhoto ? (pickFromSanity(aboutPhoto, "Healed work by Pomi") ?? null) : seed.aboutPhoto,
+    pricesAsOf: monthYear(pricesUpdated) ?? seed.pricesAsOf,
+  });
 }
 
 export function formatPrice(n: number): string {

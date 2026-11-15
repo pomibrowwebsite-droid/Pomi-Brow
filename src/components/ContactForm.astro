@@ -1,7 +1,7 @@
 ---
 // The contact form plus the studio's location. Submissions go to POST /api/contact (src/lib/contact.ts), never to Sanity.
 import type { SiteSettings, Service } from "../lib/content";
-import { localPhoto } from "../lib/content";
+import { localPhoto, getHomePage } from "../lib/content";
 import Icon from "./Icon.astro";
 import Photo from "./Photo.astro";
 import MapEmbed from "./MapEmbed.astro";
@@ -11,6 +11,8 @@ interface Props {
   services: Service[];
 }
 const { settings, services } = Astro.props;
+// The form's heading and intro are shared by every page that shows it (Home page in the Studio).
+const home = await getHomePage();
 const options = services.filter((s) => ["Eyebrows", "Eyes", "Lips", "Hair"].includes(s.category));
 // What a first-timer walks into, so the address has a place attached to it.
 const studioPhoto = localPhoto(
@@ -23,10 +25,9 @@ const studioPhoto = localPhoto(
   <div class="page contact__grid">
     <div class="contact__form-col reveal">
       <div class="section-head" style="margin-bottom: var(--space-6)">
-        <h2 id="contact-heading">Request an appointment.</h2>
+        <h2 id="contact-heading">{home.formHeading}</h2>
         <p class="lede">
-          Tell Pomi what you have in mind and she will call or text you to find a time. Not sure which service fits? Ask that
-          too. Pomi answers herself.
+          {home.formIntro}
         </p>
       </div>
 

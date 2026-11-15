@@ -10,8 +10,10 @@ interface Props {
   services: Service[];
   /** Shown until a real headshot is supplied in Site settings. */
   fallbackPhoto: PhotoType | null;
+  /** The four facts under the bio (Home page in the Studio). */
+  facts: { value: string; label: string }[];
 }
-const { settings, services, fallbackPhoto } = Astro.props;
+const { settings, services, fallbackPhoto, facts } = Astro.props;
 const photo = settings.headshot ?? fallbackPhoto;
 const isHeadshot = Boolean(settings.headshot);
 // Caption comes from the photograph, so swapping the fallback image cannot leave a stale label.
@@ -21,14 +23,8 @@ const cap = photo && !isHeadshot ? photoCaption(photo, services) : null;
 const bio = settings.bio.filter((p) => !/placeholder/i.test(p));
 // Until there is a bio and a headshot this section was a heading, one sentence and two
 // links beside a 552px photograph -- a quarter filled, and the one place on the page that
-// asks you to trust a person. These four facts were read off the Yelp listing on
-// 2026-09-19 and the address; none of them is written copy waiting to be replaced.
-const facts = [
-  { value: "10 years", label: "in business" },
-  { value: "Free", label: "consultations" },
-  { value: "By appointment", label: "only" },
-  { value: "Tustin", label: "serving Irvine and Orange County" },
-];
+// asks you to trust a person. The four facts (read off the Yelp listing on 2026-09-19 and
+// the address) now live on the Home page in the Studio.
 ---
 
 <section class="about section" id="about" aria-labelledby="about-heading">
