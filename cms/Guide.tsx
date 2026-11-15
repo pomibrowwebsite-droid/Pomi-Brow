@@ -15,6 +15,13 @@ export function Guide() {
         <li>Click <strong>Publish</strong> (bottom right). The website updates about two minutes later.</li>
       </ol>
 
+      <h2 style={h}>See it before you publish</h2>
+      <p>
+        Click <strong>Preview</strong> at the top of the screen. The real website opens beside your fields, showing your unpublished changes, and
+        refreshes as you type. Click any text on the page to jump to the field that controls it. Visitors don't see any of it until you
+        publish.
+      </p>
+
       <h2 style={h}>Where things are</h2>
       <ul>
         <li><strong>Home page</strong>: the headline, the photo wall and the section headings.</li>

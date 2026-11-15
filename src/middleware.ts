@@ -1,11 +1,26 @@
-// The home-only launch gate (see src/lib/launch.ts). Runs at build time in static output:
-// inner routes become redirect pages to "/", and the home page's outbound links lose their href.
-import { defineMiddleware } from "astro:middleware";
+// Two gates, both off on the public site unless switched on:
+//
+// - The editor's preview (PUBLIC_PREVIEW=true, src/lib/preview.ts): every page needs the session
+//   the Studio's signed link grants, and every answer is noindex, no-store, framable only by
+//   the Studio.
+// - The home-only launch gate (see src/lib/launch.ts). Runs at build time in static output:
+//   inner routes become redirect pages to "/", and the home page's outbound links lose their href.
+import { defineMiddleware, sequence } from "astro:middleware";
 import { HOME_ONLY, disableInternalLinks } from "./lib/launch";
+import { LOCKED_PAGE, PREVIEW, SESSION_COOKIE, previewHeaders, validSession } from "./lib/preview";
 
 let announced = false;
 
-export const onRequest = defineMiddleware(async (context, next) => {
+const previewGate = defineMiddleware(async (context, next) => {
+  if (!PREVIEW) return next();
+  if (context.url.pathname.startsWith("/api/preview/")) return next();
+  if (!(await validSession(context.cookies.get(SESSION_COOKIE)?.value))) {
+    return previewHeaders(new Response(LOCKED_PAGE, { status: 401, headers: { "Content-Type": "text/html; charset=utf-8" } }));
+  }
+  return previewHeaders(await next());
+});
+
+const launchGate = defineMiddleware(async (context, next) => {
   if (!HOME_ONLY) return next();
   if (!announced) {
     announced = true;
@@ -19,3 +34,5 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const html = await res.text();
   return new Response(disableInternalLinks(html), { status: res.status, headers: res.headers });
 });
+
+export const onRequest = sequence(previewGate, launchGate);

@@ -15,8 +15,11 @@ export async function getStaticPaths() {
   return learn.map((article) => ({ params: { slug: article.slug }, props: { article } }));
 }
 
-const { article } = Astro.props;
 const [settings, services, learn] = await Promise.all([getSiteSettings(), getServices(), getLearnArticles()]);
+// Built statically, getStaticPaths hands the article in. Rendered on request (the editor's preview),
+// it is looked up by its address, and an unknown address is the 404 page.
+const article = Astro.props.article ?? learn.find((x) => x.slug === Astro.params.slug);
+if (!article) return Astro.rewrite("/404");
 ---
 
 <Base

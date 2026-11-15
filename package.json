@@ -27,8 +27,9 @@
     "@fontsource-variable/newsreader": "^5.3.0",
     "@fontsource/italiana": "^5.3.0",
     "@sanity/astro": "^3.5.1",
-    "@sanity/client": "^8.6.0",
+    "@sanity/client": "^8.16.0",
     "@sanity/image-url": "^2.1.1",
+    "@sanity/visual-editing": "^6.2.1",
     "astro": "^7.3.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -38,6 +39,7 @@
     "styled-components": "^6.1.19"
   },
   "devDependencies": {
+    "@astrojs/cloudflare": "^14.4.8",
     "@cloudflare/workers-types": "^5.20260907.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

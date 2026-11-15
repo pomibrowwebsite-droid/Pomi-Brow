@@ -92,6 +92,43 @@ In Cloudflare, on the `pomi-brow` Worker: **Settings → Build → Variables and
 sanity.io/manage → **Members → Invite** with her email. Use the Administrator role, since the
 free plan has only Administrator and Viewer. She signs in at `/admin`.
 
+## Live preview
+
+The Studio's **Preview** tab shows the real site next to the fields, built from Pomi's
+unpublished drafts. It refreshes as she types, and clicking any text opens the field behind it.
+It runs on a second Worker, `pomi-brow-preview`, at **preview.pomibrow.com**:
+
+- **Same code, different build.** The repo is built with `PUBLIC_PREVIEW=true`, which switches
+  `astro.config.mjs` to on-demand pages with the Cloudflare adapter (`wrangler.preview.jsonc`).
+  The public site is unaffected: it stays fully static and builds byte-for-byte the same.
+- **Drafts.** Content is read with a Viewer token, drafts over published (`src/lib/preview.ts`).
+  Visible text carries invisible click-to-edit marks. Layout values, links, slugs and alt text
+  never do, and neither does the page head.
+- **Private.**
+  - The preview only opens from inside the Studio. Sanity's signed preview link
+    (`/api/preview/enable`) sets a 12-hour session cookie, partitioned to the Studio tab.
+  - Without that cookie, every page shows a short "open it from the editor" notice.
+  - Every response is `noindex`, `no-store`, and can only be framed by `https://pomibrow.com`.
+
+### One-time setup
+
+1. **Viewer token.** sanity.io/manage → API → Tokens → Add API token. Name it "preview", with
+   permissions **Viewer**.
+2. **Create the Worker.** Cloudflare → Workers & Pages → Create → Import a repository → the same
+   GitHub repo. Name it **`pomi-brow-preview`** and use branch `main`. Then set:
+   - Build command: `npx astro build`
+   - Deploy command: `npx wrangler deploy`
+   - **Build** variables (Settings → Build → Variables and secrets): `PUBLIC_PREVIEW` = `true`
+     and `PUBLIC_SANITY_PROJECT_ID` = `79nb88fh`.
+   - **Runtime** secret (Settings → Variables and secrets, type Secret):
+     `SANITY_VIEWER_TOKEN` = the Viewer token.
+3. **Domain.** On that Worker, go to Settings → Domains & Routes → Add → Custom domain →
+   `preview.pomibrow.com`. It has to be a subdomain of pomibrow.com, because browsers block the
+   preview's cookie when the preview and the Studio are on unrelated sites.
+
+The preview shows drafts live without any rebuild. Only code changes need a new build of the
+preview Worker.
+
 ## How photos work
 
 The import uploads every photo the site uses. Each image remembers the repo file it came from,
