@@ -1,5 +1,7 @@
 import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
+import { presentationTool } from "sanity/presentation";
+import { PREVIEW_ORIGIN, resolve } from "./cms/presentation";
 import { schemaTypes, SINGLETONS } from "./cms/schema";
 import { structure } from "./cms/structure";
 
@@ -12,7 +14,15 @@ export default defineConfig({
   title: "Pomi B. Brow Studio",
   projectId,
   dataset,
-  plugins: [structureTool({ structure })],
+  plugins: [
+    structureTool({ structure, title: "Edit" }),
+    // The real site beside the fields, updating as you type (preview.pomibrow.com).
+    presentationTool({
+      title: "Preview",
+      previewUrl: { origin: PREVIEW_ORIGIN, previewMode: { enable: "/api/preview/enable" } },
+      resolve,
+    }),
+  ],
   schema: {
     types: schemaTypes,
     // Studio details and the Home page are one of a kind, and each page's address is fixed in

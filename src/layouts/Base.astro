@@ -4,6 +4,9 @@ import type { SiteSettings, Service, LearnArticle } from "../lib/content";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import CallBar from "../components/CallBar.astro";
+import { VisualEditing } from "@sanity/astro/visual-editing";
+import { PREVIEW } from "../lib/preview";
+import { stegaClean } from "@sanity/client/stega";
 
 interface Props {
   title: string;
@@ -17,7 +20,10 @@ interface Props {
   noindex?: boolean;
 }
 
-const { title, description, settings, services = [], faqs = [], canonicalPath = "/", ogImage, noindex = false } = Astro.props;
+const { title: rawTitle, description: rawDescription, settings, services = [], faqs = [], canonicalPath = "/", ogImage, noindex = false } = Astro.props;
+// The editor preview's click-to-edit marks belong in visible text, never in the head.
+const title = stegaClean(rawTitle);
+const description = stegaClean(rawDescription);
 const site = Astro.site ?? new URL("https://pomibrow.com");
 const canonical = new URL(canonicalPath, site).toString();
 const analyticsToken = import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN;
@@ -134,6 +140,8 @@ const faqSchema =
         />
       )
     }
+    {/* The editor's preview only: click any text to open its field in the Studio. */}
+    {PREVIEW && <VisualEditing enabled zIndex={1000} />}
   </body>
 </html>
 

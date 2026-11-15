@@ -1,0 +1,25 @@
+// The editor's live preview: a second Worker, separate from the public site (wrangler.jsonc).
+// It renders every page on request from Pomi's unpublished drafts and is shown inside the Studio
+// at pomibrow.com/admin → Preview. Built with PUBLIC_PREVIEW=true, which switches astro.config.mjs
+// to on-demand output with the Cloudflare adapter. See docs/sanity-setup.md, "Live preview".
+//
+// Settings in the Cloudflare dashboard for this Worker:
+//   Build command   npx astro build
+//   Deploy command  npx wrangler deploy
+//   Build variables PUBLIC_PREVIEW=true, PUBLIC_SANITY_PROJECT_ID=79nb88fh
+//   Secret          SANITY_VIEWER_TOKEN (a Viewer token from sanity.io/manage → API → Tokens)
+//   Custom domain   preview.pomibrow.com
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pomi-brow-preview",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-09-11",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist"
+  },
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true }
+}

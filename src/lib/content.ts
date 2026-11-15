@@ -4,8 +4,7 @@
  * Every getter returns the same normalized shape either way.
  */
 import type { ImageMetadata } from "astro";
-import { readFileSync } from "node:fs";
-import { createHash } from "node:crypto";
+import { stegaClean } from "@sanity/client/stega";
 import imageUrlBuilder from "@sanity/image-url";
 import seedSettings from "../content/seed/siteSettings.json";
 import seedServices from "../content/seed/services.json";
@@ -228,7 +227,9 @@ function captionFromAlt(alt?: string): PhotoCaption {
   return { serviceSlug: service?.slug, detail: alt.slice(comma + 1).trim() || undefined };
 }
 
-function remotePhoto(img: any, alt: string): Photo | null {
+function remotePhoto(img: any, rawAlt: string): Photo | null {
+  // Alt text is an attribute: the preview's click-to-edit marks must not ride along.
+  const alt = stegaClean(rawAlt);
   if (!img?.asset) return null;
   const builder = imageUrlBuilder({ projectId: projectId!, dataset });
   const base = builder.image(img).auto("format").quality(80);
@@ -259,20 +260,12 @@ const IMAGE = `{..., ${ASSET}}`;
 const SLOT = `{..., photo${IMAGE}}`;
 const SECTIONS = `sections[]{..., image${SLOT}, items[]{..., image${SLOT}}, sides[]{..., image${SLOT}}}`;
 
-const fileHashes = new Map<string, string | null>();
+/** sha1 of every repo gallery file, computed by astro.config.mjs at build time so it works on any
+    runtime, including the preview Worker, which has no file system. */
+declare const __GALLERY_SHA1__: Record<string, string> | undefined;
+const GALLERY_SHA1: Record<string, string> = typeof __GALLERY_SHA1__ !== "undefined" ? __GALLERY_SHA1__ : {};
 /** sha1 of a repo gallery file, to tell whether a Sanity image is still that photograph. */
-function gallerySha1(ref: string): string | null {
-  if (!fileHashes.has(ref)) {
-    let hash: string | null = null;
-    try {
-      hash = createHash("sha1").update(readFileSync(`${process.cwd()}/src/assets/gallery/${ref}.jpg`)).digest("hex");
-    } catch {
-      /* not a repo photo */
-    }
-    fileHashes.set(ref, hash);
-  }
-  return fileHashes.get(ref)!;
-}
+const gallerySha1 = (ref: string): string | null => GALLERY_SHA1[ref] ?? null;
 
 /** The repo file a Sanity image still is, or undefined when it must come from Sanity. */
 function galleryRefOf(img: any): string | undefined {
@@ -445,6 +438,8 @@ async function client(): Promise<{ fetch: (query: string, params?: Record<string
   // The parity check (scripts/sanity-parity.mjs) builds from the import's own output instead
   // of a live project, so the two sources can be compared page by page.
   if (process.env.SANITY_FIXTURE) return (await import("./sanity-fixture")).fixtureClient(process.env.SANITY_FIXTURE);
+  // The editor's preview reads unpublished drafts, marked for click-to-edit (src/lib/preview.ts).
+  if (import.meta.env.PUBLIC_PREVIEW === "true") return (await import("./preview")).previewClient();
   const mod = await import("sanity:client");
   return mod.sanityClient;
 }

@@ -3,8 +3,10 @@ import { defineConfig } from "astro/config";
 import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
 import sanity from "@sanity/astro";
+import cloudflare from "@astrojs/cloudflare";
 import { loadEnv } from "vite";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { HOME_ONLY } from "./src/lib/launch.ts";
 
@@ -14,6 +16,40 @@ const env = loadEnv(process.env.NODE_ENV ?? "production", process.cwd(), "");
 // Fill PUBLIC_SANITY_PROJECT_ID in .env (see .env.example) to activate /admin and live content.
 const projectId = env.PUBLIC_SANITY_PROJECT_ID || "placeholder";
 const dataset = env.PUBLIC_SANITY_DATASET || "production";
+
+// The editor's live preview (src/lib/preview.ts): the same site rendered on request from drafts,
+// deployed as a second Worker from wrangler.preview.jsonc. The public build stays fully static.
+const preview = env.PUBLIC_PREVIEW === "true";
+
+// sha1 of every gallery photo, by ref ("microblading/04"). src/lib/content.ts compares it with a
+// Sanity image's hash to know when a photo is still the repo's own file. Computed here, at build
+// time, because the preview Worker has no file system to read the files from.
+function gallerySha1() {
+  const root = resolve("src/assets/gallery");
+  /** @type {Record<string, string>} */
+  const out = {};
+  for (const folder of readdirSync(root)) {
+    const dir = resolve(root, folder);
+    if (!statSync(dir).isDirectory()) continue;
+    for (const file of readdirSync(dir)) {
+      if (!file.endsWith(".jpg")) continue;
+      out[`${folder}/${file.slice(0, -4)}`] = createHash("sha1").update(readFileSync(resolve(dir, file))).digest("hex");
+    }
+  }
+  return out;
+}
+
+/** Adds the preview's sign-in route, which only exists in the preview build. */
+function previewRoutes() {
+  return {
+    name: "preview-routes",
+    hooks: {
+      "astro:config:setup": (/** @type {{ injectRoute: (r: { pattern: string; entrypoint: string; prerender?: boolean }) => void }} */ { injectRoute }) => {
+        if (preview) injectRoute({ pattern: "/api/preview/enable", entrypoint: "./src/preview/enable.ts", prerender: false });
+      },
+    },
+  };
+}
 
 // Dev only. `astro dev` never runs functions/, so this serves GET /api/instagram through the same
 // core the Pages Function uses. With INSTAGRAM_ACCESS_TOKEN in .env it calls Meta; without it, it
@@ -64,7 +100,19 @@ function instagramDevRoute() {
 
 export default defineConfig({
   site: "https://pomibrow.com",
-  output: "static",
+  output: preview ? "server" : "static",
+  // Nothing here uses Astro sessions; without this the Cloudflare adapter would provision an
+  // unused KV namespace for them.
+  session: false,
+  ...(preview
+    ? {
+        adapter: cloudflare({
+          configPath: "wrangler.preview.jsonc",
+          // Photos in the preview come straight from the repo or Sanity; no resizing service needed.
+          imageService: "passthrough",
+        }),
+      }
+    : {}),
   trailingSlash: "never",
   integrations: [
     sanity({
@@ -84,11 +132,13 @@ export default defineConfig({
         (!HOME_ONLY || new URL(page).pathname === "/"),
     }),
     instagramDevRoute(),
+    previewRoutes(),
   ],
   image: {
     // Original gallery images are large phone shots; cap the largest generated size.
     responsiveStyles: true,
   },
+  vite: { define: { __GALLERY_SHA1__: JSON.stringify(gallerySha1()) } },
   server: { port: 4400 },
   devToolbar: { enabled: false },
 });

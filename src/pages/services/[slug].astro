@@ -28,8 +28,11 @@ export async function getStaticPaths() {
   return services.map((service) => ({ params: { slug: service.slug }, props: { service } }));
 }
 
-const { service } = Astro.props;
 const [settings, services, learn] = await Promise.all([getSiteSettings(), getServices(), getLearnArticles()]);
+// Built statically, getStaticPaths hands the service in. Rendered on request (the editor's preview),
+// it is looked up by its address, and an unknown address is the 404 page.
+const service = Astro.props.service ?? services.find((x) => x.slug === Astro.params.slug);
+if (!service) return Astro.rewrite("/404");
 
 // The cover already leads the page. Showing it again in the grid below put the same
 // photograph on the page twice. Local photos identify by source path, Sanity ones by src,
