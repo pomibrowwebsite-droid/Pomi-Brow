@@ -7,13 +7,14 @@ import Reviews from "../components/Reviews.astro";
 import InstagramGrid from "../components/InstagramGrid.astro";
 import Faq from "../components/Faq.astro";
 import ContactForm from "../components/ContactForm.astro";
-import { getSiteSettings, getServices, getReviews, getLearnArticles, localPhoto, localGallery, visibleReviews } from "../lib/content";
+import { getSiteSettings, getServices, getReviews, getLearnArticles, getHomePage, localPhoto, localGallery, visibleReviews } from "../lib/content";
 
-const [settings, services, reviews, learn] = await Promise.all([
+const [settings, services, reviews, learn, home] = await Promise.all([
   getSiteSettings(),
   getServices(),
   getReviews(),
   getLearnArticles(),
+  getHomePage(),
 ]);
 
 const faqs = learn.filter((l) => l.showAsFaq).slice(0, 5);
@@ -31,92 +32,70 @@ const REVIEW_POOL = ["microblading", "microblading-shading", "ombre-powder-brows
 // its neighbour's. Wide cells (span 3) go to eyeliner, lash and lip work, which
 // are horizontal subjects; brows and scalp take the squarer cells. Crop focus is
 // set per tile because every source is square and the subject sits high in frame.
-const heroTileSpecs = [
+// Positions are the design; the photo in each (with its alt and crop point) is the Home
+// page in the Studio, in this order.
+const HERO_POSITIONS = [
   // --- first five also serve the phone, one per category ---
   {
-    ref: "microblading-shading/01",
     col: 1,
     row: 6,
     span: 4,
-    focus: "50% 45%",
-    alt: "Healed microblading and shading on both brows, by Pomi",
   },
   {
-    ref: "eyeliner/01",
     col: 1,
     row: 10,
     span: 3,
-    focus: "50% 30%",
-    alt: "Healed permanent eyeliner along the upper lash line",
   },
   {
-    ref: "lip-tint/03",
     col: 1,
     row: 1,
     span: 5,
-    focus: "50% 50%",
-    alt: "Lip tint before and after: the natural lip above, the healed colour below",
   },
   {
-    ref: "scalp-micropigmentation/01",
     col: 3,
     row: 8,
     span: 5,
-    focus: "50% 50%",
-    alt: "Scalp micropigmentation before and after along the hairline",
   },
   {
-    ref: "ombre-powder-brows/02",
     col: 2,
     row: 9,
     span: 4,
-    focus: "50% 40%",
-    alt: "Healed ombre powder brows with a soft gradient",
   },
 
   // --- desktop only ---
   {
-    ref: "lash-enhancement/01",
     col: 2,
     row: 4,
     span: 5,
-    focus: "50% 50%",
-    alt: "Lash enhancement before and after, a fine line set between the lashes",
   },
   {
-    ref: "microblading/01",
     col: 3,
     row: 1,
     span: 4,
-    focus: "50% 45%",
-    alt: "Healed microblading on both brows, six weeks after the touch-up",
   },
   {
-    ref: "microblading/05",
     col: 2,
     row: 1,
     span: 3,
-    focus: "50% 45%",
-    alt: "Healed microblading, fine individual hair strokes",
   },
   {
-    ref: "eyeliner/03",
     col: 3,
     row: 5,
     span: 3,
-    focus: "50% 45%",
-    alt: "Healed permanent eyeliner, close up",
   },
 ] as const;
 
-const heroTiles = heroTileSpecs.flatMap((t) => {
-  const photo = localPhoto(t.ref, t.alt);
-  return photo ? [{ photo, col: t.col, row: t.row, span: t.span, focus: t.focus }] : [];
+const heroTiles = HERO_POSITIONS.flatMap((t, i) => {
+  const picked = home.heroPhotos[i];
+  if (!picked) return [];
+  // The tile carries the crop point, as before; the photo itself goes in without one.
+  const { focus, ...photo } = picked;
+  return [{ photo: photo as typeof picked, col: t.col, row: t.row, span: t.span, focus }];
 });
 // One image per slot on this page. Not ombre-powder-brows/04 (an Instagram pick) and not
 // microblading-shading/02, which is byte-identical to ombre-powder-brows/02 in the hero --
 // the client supplied the same photograph under both service names.
-const aboutPhoto = localPhoto("microblading-shading/06", "Healed microblading and shading on a client in her forties, by Pomi");
+const aboutPhoto = home.aboutPhoto;
 
 // Everything already standing on this page, by gallery ref, so the review photographs can
 // take from what is left. microblading-shading/02 is excluded for the reason above: it is
@@ -127,7 +106,7 @@ const refOf = (p: { kind: string; source?: string } | null | undefined) =>
     : null;
 const takenRefs = new Set<string>(
   [
-    ...heroTileSpecs.map((t) => t.ref as string),
+    ...heroTiles.map((t) => refOf(t.photo)),
     ...(settings.instagramPicks ?? []).map(refOf),
     // The price grid shows a cover per service further down the same page.
     ...services.map((svc) => refOf(svc.cover)),
@@ -178,13 +157,13 @@ const title = `${settings.businessName} | Natural permanent makeup in Tustin, ne
       The six-week healing timeline moved to /aftercare and the service pages on 2026-09-19 --
       a calendar that early made the process read as complex. Since 2026-09-27 its slot is
       Pomi herself -- a face, her words and four facts -- the way solo PMU studios open. */}
-  {heroTiles.length > 0 && <Hero settings={settings} tiles={heroTiles} />}
+  {heroTiles.length > 0 && <Hero settings={settings} home={home} tiles={heroTiles} />}
   {/* The hero carries the page's only h1; without it the page still needs one. */}
   {heroTiles.length === 0 && <h1 class="visually-hidden">{settings.businessName}: {settings.locationLine}</h1>}
-  <AboutPomi settings={settings} services={services} fallbackPhoto={aboutPhoto} />
-  <InstagramGrid settings={settings} services={services} />
+  <AboutPomi settings={settings} services={services} fallbackPhoto={aboutPhoto} facts={home.aboutFacts} />
+  <InstagramGrid settings={settings} services={services} heading={home.workHeading} intro={home.workIntro} />
   <Reviews reviews={reviews} settings={settings} photos={reviewPhotos} services={services} />
-  <PricingTable services={services} />
-  <Faq faqs={faqs} />
+  <PricingTable services={services} home={home} />
+  <Faq faqs={faqs} heading={home.faqHeading} lede={home.faqIntro} />
   <ContactForm settings={settings} services={services} />
 </Base>

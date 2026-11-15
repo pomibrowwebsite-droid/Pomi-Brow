@@ -10,7 +10,7 @@
 // comes from row spans over a 12-row grid with object-fit: cover. Spans are assigned by subject:
 // the studio's before/after images are stacked pairs, and a pair only survives in the squarest cell
 // (span 5), so those go there and single healed shots take the landscape cells. See index.astro.
-import type { SiteSettings, Photo as PhotoType } from "../lib/content";
+import type { SiteSettings, HomePage, Photo as PhotoType } from "../lib/content";
 import Photo from "./Photo.astro";
 import Icon from "./Icon.astro";
 
@@ -28,13 +28,15 @@ export interface HeroTile {
 
 interface Props {
   settings: SiteSettings;
+  /** The hero's words (Home page in the Studio). */
+  home: HomePage;
   tiles: HeroTile[];
 }
-const { settings, tiles } = Astro.props;
+const { settings, home, tiles } = Astro.props;
 
 // The occasions the line cycles through. The first is the resting state, and the only
 // one prefers-reduced-motion users see.
-const OCCASIONS = ["meeting", "night out", "workout", "brunch", "errand", "pilates class", "drop off"];
+const OCCASIONS = home.heroOccasions;
 
 const categories = [
   { label: "Brows", mod: "brow" },
@@ -49,7 +51,7 @@ const categories = [
 <section class="hero page" data-hero>
   <div class="hero__copy">
     <h1>
-      Perfect brows for every{" "}
+      {home.heroHeadline}{" "}
       <span class="hero__cycle" aria-hidden="true" data-cycle>
         {OCCASIONS.map((w, i) => (
           <span class="hero__word" style={`--i:${i}`}>{w}</span>
@@ -65,7 +67,7 @@ const categories = [
       <span data-cycle-label>Pause animation</span>
     </button>
     <p class="lede">
-      Permanent makeup mapped, measured, and drawn by one artist, so the result looks like you on a good day.
+      {home.heroIntro}
     </p>
     <div class="hero__actions">
       <a class="btn hero__call" href={`tel:${settings.phoneTel}`}>
@@ -79,8 +81,7 @@ const categories = [
     </div>
     <p class="hero__meta">
       <span>
-        {settings.locationLine}. Every service is two visits: the session, then a perfecting touch-up around six weeks
-        later.
+        {settings.locationLine}. {home.heroNote}
       </span>
     </p>
   </div>
@@ -109,7 +110,7 @@ const categories = [
     {/* Nothing is drawn over a photograph, so the categories are named beneath the wall
         rather than pinned to the tiles. */}
     <figcaption class="hero__legend">
-      <span>Healed results and before-and-afters. All of it Pomi's own work.</span>
+      <span>{home.heroCaption}</span>
       <span class="hero__legend-tags">
         {categories.map((c) => <span class={`tag tag--${c.mod}`}>{c.label}</span>)}
       </span>

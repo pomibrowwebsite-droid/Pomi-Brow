@@ -3,6 +3,10 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
 import { LAYOUTS as SITE_LAYOUTS, type BlockLayout } from "../../src/lib/sections";
 import { photoFields } from "./photo";
+import { eachFits, fits, siteLink } from "./rules";
+
+/** Layout choices stay folded away: the page picks a good one when they are left empty. */
+const layoutFieldset = { name: "layout", title: "Layout options", options: { collapsible: true, collapsed: true } };
 
 const RATIOS = ["5 / 2", "4 / 5", "3 / 2", "1 / 1"];
 
@@ -40,7 +44,7 @@ export const imageSlot = defineType({
       title: "What the photo should show",
       type: "string",
       description: "Written inside the empty frame until a photo is added.",
-      validation: (r) => r.required(),
+      validation: fits(160, { required: true }),
     }),
     defineField({ name: "photo", type: "image", options: { hotspot: true }, fields: photoFields }),
   ],
@@ -51,8 +55,14 @@ const link = defineArrayMember({
   type: "object",
   name: "link",
   fields: [
-    defineField({ name: "label", type: "string", validation: (r) => r.required() }),
-    defineField({ name: "href", type: "string", validation: (r) => r.required() }),
+    defineField({ name: "label", title: "Link text", type: "string", validation: fits(40, { required: true }) }),
+    defineField({
+      name: "href",
+      title: "Goes to",
+      type: "string",
+      description: "A page on this site like /aftercare, or a full https:// address.",
+      validation: (r) => [r.required().error("Where should the link go?"), siteLink(r)],
+    }),
   ],
 });
 
@@ -69,17 +79,17 @@ export const callout = defineType({
       description: "note: neutral. voice: in Pomi's words. caution: medical note. links: where to read next.",
       validation: (r) => r.required(),
     }),
-    defineField({ name: "title", type: "string", validation: (r) => r.required() }),
-    defineField({ name: "text", type: "text", rows: 3 }),
-    defineField({ name: "bullets", type: "array", of: [{ type: "string" }] }),
+    defineField({ name: "title", type: "string", validation: fits(50, { required: true }) }),
+    defineField({ name: "text", type: "text", rows: 3, validation: fits(420) }),
+    defineField({ name: "bullets", type: "array", of: [{ type: "string" }], validation: eachFits(150) }),
     defineField({ name: "links", type: "array", of: [link] }),
   ],
   preview: { select: { title: "title", subtitle: "tone" } },
 });
 
-const heading = defineField({ name: "heading", type: "string", validation: (r) => r.required() });
-const lede = defineField({ name: "lede", type: "text", rows: 2 });
-const bullets = defineField({ name: "bullets", type: "array", of: [{ type: "string" }] });
+const heading = defineField({ name: "heading", type: "string", validation: fits(90, { required: true }) });
+const lede = defineField({ name: "lede", title: "Intro", type: "text", rows: 2, validation: fits(220) });
+const bullets = defineField({ name: "bullets", title: "Bullet points", type: "array", of: [{ type: "string" }], validation: eachFits(150) });
 
 /** One photo for the whole section, as opposed to a photo on each card. */
 const sectionImage = (description?: string) => defineField({ name: "image", title: "Section photo", type: "imageSlot", description });
@@ -88,6 +98,7 @@ const blockImage = sectionImage("One photo for the whole section, placed by the 
 /** How a group of cards, steps or a compare is composed; checked against LAYOUTS. */
 const blockLayout = defineField({
   name: "layout",
+  fieldset: "layout",
   type: "string",
   options: { list: Object.entries(LAYOUTS).map(([value, { title }]) => ({ title, value })) },
   description: "Leave empty to let the page choose. Split, feature, bento and center need a section photo.",
@@ -108,6 +119,7 @@ const blockLayout = defineField({
 /** Which side a section's photo sits on. */
 const side = defineField({
   name: "side",
+  fieldset: "layout",
   title: "Photo side",
   type: "string",
   options: {
@@ -136,7 +148,7 @@ export const sectionFacts = defineType({
       of: [
         defineArrayMember({
           type: "object",
-          fields: [defineField({ name: "title", type: "string" }), defineField({ name: "text", type: "string" })],
+          fields: [defineField({ name: "title", type: "string", validation: fits(32) }), defineField({ name: "text", type: "string", validation: fits(90) })],
         }),
       ],
     }),
@@ -148,13 +160,15 @@ export const sectionStatement = defineType({
   name: "sectionStatement",
   title: "Statement",
   type: "object",
+  fieldsets: [layoutFieldset],
   fields: [
     heading,
     lede,
-    defineField({ name: "paragraphs", type: "array", of: [{ type: "text" }], validation: (r) => r.min(1).max(3) }),
+    defineField({ name: "paragraphs", type: "array", of: [{ type: "text" }], validation: (r) => [r.min(1).max(3), eachFits(320)(r)] }),
     sectionImage(),
     defineField({
       name: "layout",
+      fieldset: "layout",
       type: "string",
       options: {
         list: [
@@ -175,6 +189,7 @@ export const sectionGrid = defineType({
   name: "sectionGrid",
   title: "Cards",
   type: "object",
+  fieldsets: [layoutFieldset],
   fields: [
     heading,
     lede,
@@ -186,12 +201,12 @@ export const sectionGrid = defineType({
         defineArrayMember({
           type: "object",
           fields: [
-            defineField({ name: "title", type: "string", validation: (r) => r.required() }),
-            defineField({ name: "text", type: "text", rows: 2 }),
+            defineField({ name: "title", type: "string", validation: fits(60, { required: true }) }),
+            defineField({ name: "text", type: "text", rows: 2, validation: fits(260) }),
             bullets,
             defineField({ name: "image", type: "imageSlot" }),
-            defineField({ name: "href", type: "string", description: "Makes this a link card. Needs a link label too." }),
-            defineField({ name: "linkLabel", type: "string", description: 'The visible link text, e.g. "Read".' }),
+            defineField({ name: "href", title: "Card links to", type: "string", description: "Optional: makes the whole card a link, e.g. /aftercare. Needs a link label too.", validation: siteLink }),
+            defineField({ name: "linkLabel", title: "Link label", type: "string", description: 'The visible link text, e.g. "Read".', validation: fits(20) }),
             defineField({
               name: "links",
               type: "array",
@@ -212,6 +227,7 @@ export const sectionGrid = defineType({
     defineField({ name: "callout", type: "callout" }),
     defineField({
       name: "columns",
+      fieldset: "layout",
       type: "number",
       options: { list: [2, 3, 4] },
       description: "No longer used: the layout decides how many columns a group runs. Clear this.",
@@ -225,6 +241,7 @@ export const sectionSequence = defineType({
   name: "sectionSequence",
   title: "Steps or timeline",
   type: "object",
+  fieldsets: [layoutFieldset],
   fields: [
     heading,
     lede,
@@ -237,9 +254,9 @@ export const sectionSequence = defineType({
         defineArrayMember({
           type: "object",
           fields: [
-            defineField({ name: "label", type: "string", description: "Day 1, Week 6, or the step's short name.", validation: (r) => r.required() }),
-            defineField({ name: "title", type: "string", validation: (r) => r.required() }),
-            defineField({ name: "text", type: "text", rows: 2 }),
+            defineField({ name: "label", type: "string", description: "Day 1, Week 6, or the step's short name.", validation: fits(40, { required: true }) }),
+            defineField({ name: "title", type: "string", validation: fits(60, { required: true }) }),
+            defineField({ name: "text", type: "text", rows: 2, validation: fits(260) }),
             bullets,
             defineField({ name: "image", type: "imageSlot", description: "Shown only when the steps run side by side as tiles or ledger columns." }),
           ],
@@ -261,6 +278,7 @@ export const sectionCompare = defineType({
   name: "sectionCompare",
   title: "Compare",
   type: "object",
+  fieldsets: [layoutFieldset],
   fields: [
     heading,
     lede,
@@ -272,8 +290,8 @@ export const sectionCompare = defineType({
         defineArrayMember({
           type: "object",
           fields: [
-            defineField({ name: "title", type: "string", validation: (r) => r.required() }),
-            defineField({ name: "bullets", type: "array", of: [{ type: "string" }], validation: (r) => r.min(1) }),
+            defineField({ name: "title", type: "string", validation: fits(40, { required: true }) }),
+            defineField({ name: "bullets", type: "array", of: [{ type: "string" }], validation: (r) => [r.min(1), eachFits(150)(r)] }),
             defineField({ name: "image", type: "imageSlot" }),
           ],
         }),
@@ -291,8 +309,9 @@ export const sectionFaq = defineType({
   name: "sectionFaq",
   title: "Questions",
   type: "object",
+  fieldsets: [layoutFieldset],
   fields: [
-    defineField({ name: "heading", type: "string" }),
+    defineField({ name: "heading", type: "string", validation: fits(90) }),
     lede,
     defineField({
       name: "items",
@@ -302,8 +321,8 @@ export const sectionFaq = defineType({
         defineArrayMember({
           type: "object",
           fields: [
-            defineField({ name: "q", title: "Question", type: "string", validation: (r) => r.required() }),
-            defineField({ name: "a", title: "Answer", type: "text", rows: 2, validation: (r) => r.required() }),
+            defineField({ name: "q", title: "Question", type: "string", validation: fits(90, { required: true }) }),
+            defineField({ name: "a", title: "Answer", type: "text", rows: 2, validation: fits(320, { required: true }) }),
           ],
         }),
       ],
@@ -311,6 +330,7 @@ export const sectionFaq = defineType({
     sectionImage("Shown beside the questions in the split layout."),
     defineField({
       name: "layout",
+      fieldset: "layout",
       type: "string",
       options: {
         list: [
@@ -339,7 +359,7 @@ export const sectionCta = defineType({
   type: "object",
   fields: [
     heading,
-    defineField({ name: "text", type: "text", rows: 2, validation: (r) => r.required() }),
+    defineField({ name: "text", type: "text", rows: 2, validation: fits(220, { required: true }) }),
     defineField({ name: "links", type: "array", of: [link] }),
     sectionImage("A portrait of Pomi turns the close into a centred sign-off."),
   ],

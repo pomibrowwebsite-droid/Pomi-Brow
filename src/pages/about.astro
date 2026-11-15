@@ -18,9 +18,9 @@ import ReviewCount from "../components/ReviewCount.astro";
 import InstagramGrid from "../components/InstagramGrid.astro";
 import ContactForm from "../components/ContactForm.astro";
 import Icon from "../components/Icon.astro";
-import { getSiteSettings, getServices, localPhoto } from "../lib/content";
+import { getSiteSettings, getServices, getHomePage, localPhoto } from "../lib/content";
 
-const [settings, services] = await Promise.all([getSiteSettings(), getServices()]);
+const [settings, services, home] = await Promise.all([getSiteSettings(), getServices(), getHomePage()]);
 
 // The seed bio's first paragraph is scaffolding; the build fails if it ever reaches the page.
 const bio = (settings.bio ?? []).filter((p) => !/placeholder/i.test(p));
@@ -80,7 +80,7 @@ const isPortrait = Boolean(settings.headshot);
   </section>
 
   <ReviewCount settings={settings} />
-  <InstagramGrid settings={settings} services={services} />
+  <InstagramGrid settings={settings} services={services} heading={home.workHeading} intro={home.workIntro} />
   <ContactForm settings={settings} services={services} />
 </Base>
 

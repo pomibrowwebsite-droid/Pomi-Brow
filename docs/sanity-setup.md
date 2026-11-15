@@ -1,18 +1,41 @@
 # Sanity setup
 
-Pomi edits the site at **pomibrow.com/admin**. Everything she can change lives in Sanity:
+Pomi edits the site at **pomibrow.com/admin**. The editor opens on **Start here**, a short plain-language guide. Everything she can change lives in Sanity:
 
-- services and prices, with cover photos and galleries;
+- the **Home page**: headline and changing words, the nine-photo wall, the four facts, every section heading and intro, and the appointment form's heading (shared by every page with the form);
+- services and prices, with main photos and galleries;
 - Learn articles;
 - the Safety and Aftercare pages;
 - reviews;
-- site settings: hours, phone, address, booking link, Instagram grid, bio and headshot.
+- **Studio details**: hours, phone, address, booking link, Instagram, Yelp numbers, bio and photo.
 
 The site is static. Publishing in the Studio triggers a Cloudflare rebuild, and changes are live
 **about two minutes later**. Tell Pomi this so a delay doesn't worry her.
 
-The page designs themselves stay in the code: the home page hero tiles, the About photo and the
-studio photo on the contact form. A slot with no photo shows its "Photo to come" frame, as before.
+What stays in the code is layout: where each photo sits in the hero wall, the section order, and
+the photos chosen for reviews and the contact block.
+
+## Guard rails in the editor
+
+The schema (`cms/schema/rules.ts`) stops, before Publish, the mistakes that would break the
+design or stop the site updating:
+
+- **Length limits** on every heading, intro, card and caption, sized from the longest text the
+  approved design already holds.
+- **The word "placeholder"** anywhere in a document. The build refuses pages containing it, so
+  one stray word would freeze every later update. The bio is exempt, because the site hides a
+  paragraph that still says it.
+- **Links** must go to a page that exists, such as `/aftercare`, `/services/<slug>` or
+  `/learn/<slug>`, or use `https:`, `tel:`, `sms:` or `mailto:`. A broken internal link also
+  fails the build.
+- **Photos uploaded in the Studio** need a description.
+- **The Home page and Studio details** can't be deleted, duplicated or unpublished. Neither can
+  the Safety and Aftercare pages.
+- **Positions:** a service or article without a list position sorts last instead of scrambling
+  the list.
+
+Layout choices for page sections are folded away under **Layout options**. Left empty, the page
+picks a good layout.
 
 ## One-time setup
 
@@ -43,7 +66,9 @@ The import fills the dataset with exactly what the site shows today, photos incl
 3. **Delete the token** afterwards.
 
 The import refuses to run against a dataset that already holds these documents, so it cannot
-overwrite Pomi's edits. Pass `--force` only to start over deliberately.
+overwrite Pomi's edits. Pass `--force` only to start over deliberately. When a later change
+adds a new document type, `--only <type>` writes just that type. The Home page was added this
+way, with `--only homePage`.
 
 ### 4. Point the site at the project
 

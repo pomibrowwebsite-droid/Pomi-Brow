@@ -5,9 +5,10 @@
 //       No network. Writes the documents (and stand-in image assets) to a file. The parity check
 //       (scripts/sanity-parity.mjs) builds the site from it and compares every page.
 //
-//   SANITY_PROJECT_ID=xxxxxxxx SANITY_WRITE_TOKEN=sk... node scripts/sanity-import.mjs [--dataset production] [--force]
+//   SANITY_PROJECT_ID=xxxxxxxx SANITY_WRITE_TOKEN=sk... node scripts/sanity-import.mjs [--dataset production] [--only homePage,service] [--force]
 //       Uploads the photos and writes the documents. Refuses to touch a dataset that already holds
 //       any of them unless --force is given, so it cannot overwrite Pomi's edits by accident.
+//       --only limits it to those document types (e.g. to add a type introduced later).
 //
 // Each image keeps the gallery file it came from in a hidden `galleryRef`, so the site serves its
 // own optimised copy until the photo is replaced in the Studio (see src/lib/content.ts).
@@ -34,6 +35,9 @@ const option = (name) => {
 };
 const fixturePath = option("fixture");
 const dataset = option("dataset") ?? process.env.SANITY_DATASET ?? "production";
+const only = option("only")?.split(",").map((s) => s.trim()).filter(Boolean);
+/** Whether this run writes documents of a type. */
+const want = (type) => !only || only.includes(type);
 
 // ----------------------------------------------------------------------------------- photos
 
@@ -172,6 +176,24 @@ const ref = (id) => ({ _type: "reference", _ref: id });
 async function documents() {
   const docs = [];
 
+  if (want("homePage")) {
+    const h = seed("home");
+    const { heroPhotos, aboutPhoto, aboutFacts, pricesAsOf, ...words } = h;
+    const wall = [];
+    for (const [i, pick] of heroPhotos.entries()) wall.push(await image(pick.ref, { ...pick, key: `k${i}` }));
+    docs.push(
+      clean({
+        _id: "homePage",
+        _type: "homePage",
+        ...words,
+        heroPhotos: wall,
+        aboutFacts: keyed(aboutFacts),
+        aboutPhoto: aboutPhoto ? await image(aboutPhoto.ref, aboutPhoto) : undefined,
+      }),
+    );
+  }
+
+  if (want("siteSettings")) {
   const s = seed("siteSettings");
   const { instagramPicks, headshot, bio, bioIsPlaceholder, hours, ...settings } = s;
   const picks = [];
@@ -190,8 +212,9 @@ async function documents() {
       bio: paragraphsToBlocks(bio),
     }),
   );
+  }
 
-  for (const svc of seed("services")) {
+  for (const svc of want("service") ? seed("services") : []) {
     const { slug, cover, galleryFolder, ...rest } = svc;
     const files = galleryFolder
       ? readdirSync(join(GALLERY, galleryFolder))
@@ -212,13 +235,13 @@ async function documents() {
     );
   }
 
-  for (const r of seed("reviews")) {
+  for (const r of want("review") ? seed("reviews") : []) {
     if (r.isPlaceholder) continue;
     const { serviceSlug, isPlaceholder, ...rest } = r;
     docs.push(clean({ _id: `review-${slugify(r.reviewer)}`, _type: "review", ...rest, service: serviceSlug ? ref(`service-${serviceSlug}`) : undefined }));
   }
 
-  for (const [i, a] of seed("learn").entries()) {
+  for (const [i, a] of (want("learnArticle") ? seed("learn") : []).entries()) {
     const { slug, cover, relatedService, sections: secs, lead, ...rest } = a;
     docs.push(
       clean({
@@ -235,7 +258,7 @@ async function documents() {
     );
   }
 
-  for (const p of seed("pages")) {
+  for (const p of want("page") ? seed("pages") : []) {
     const { slug, lead, facts, sections: secs, ...rest } = p;
     docs.push(
       clean({
@@ -268,7 +291,14 @@ if (fixturePath) {
   }
   client = createClient({ projectId, dataset, token, apiVersion: "2025-06-01", useCdn: false });
 
-  const ids = ["siteSettings", ...seed("services").map((s) => `service-${s.slug}`), ...seed("learn").map((a) => `learn-${a.slug}`), ...seed("pages").map((p) => `page-${p.slug}`)];
+  const ids = [
+    ...(want("homePage") ? ["homePage"] : []),
+    ...(want("siteSettings") ? ["siteSettings"] : []),
+    ...(want("service") ? seed("services").map((s) => `service-${s.slug}`) : []),
+    ...(want("review") ? seed("reviews").map((r) => `review-${slugify(r.reviewer)}`) : []),
+    ...(want("learnArticle") ? seed("learn").map((a) => `learn-${a.slug}`) : []),
+    ...(want("page") ? seed("pages").map((p) => `page-${p.slug}`) : []),
+  ];
   const existing = await client.fetch(`count(*[_id in $ids || _id in $drafts])`, { ids, drafts: ids.map((id) => `drafts.${id}`) });
   if (existing > 0 && !flag("force")) {
     console.error(`The ${dataset} dataset already has ${existing} of these documents. Re-run with --force to overwrite them (this replaces any edits made in the Studio).`);

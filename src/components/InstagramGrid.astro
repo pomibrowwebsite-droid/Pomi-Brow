@@ -12,8 +12,10 @@ import Icon from "./Icon.astro";
 interface Props {
   settings: SiteSettings;
   services: Service[];
+  heading: string;
+  intro: string;
 }
-const { settings, services } = Astro.props;
+const { settings, services, heading, intro } = Astro.props;
 const picks = settings.instagramPicks.slice(0, 4);
 const live = settings.instagramLiveFeed;
 // A blank remote photo for the template. Inside <template> nothing is fetched; the script fills it in.
@@ -26,8 +28,8 @@ const blank = { kind: "remote", src: "", srcset: "", width: 640, height: 640, al
       <div class="page">
         <div class="ig__head reveal">
           <div class="section-head" style="margin-bottom: 0">
-            <h2 id="ig-heading">Recent work, as it heals.</h2>
-            <p class="lede">Pomi posts new results most weeks. The newest are here; the feed is the whole portfolio.</p>
+            <h2 id="ig-heading">{heading}</h2>
+            <p class="lede">{intro}</p>
           </div>
           <a class="btn btn--quiet" href={settings.instagramUrl} rel="noopener">
             <Icon name="instagram" />
