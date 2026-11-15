@@ -1,4 +1,5 @@
 import { defineField, defineType } from "sanity";
+import { galleryRefField, photoField } from "./photo";
 
 export const service = defineType({
   name: "service",
@@ -51,20 +52,30 @@ export const service = defineType({
     }),
     defineField({ name: "summary", title: "One-line summary", type: "text", rows: 2 }),
     defineField({ name: "description", type: "array", of: [{ type: "block" }] }),
+    photoField("cover", "Cover photo", "The one photo for this service on the home price list and at the top of its page."),
     defineField({
       name: "gallery",
       title: "Healed results",
       type: "array",
+      description: "The photos on the service page, in this order.",
       of: [
         {
           type: "image",
           options: { hotspot: true },
           fields: [
+            galleryRefField,
+            defineField({ name: "alt", title: "Alt text", type: "string", description: "What the photo shows. Leave empty for “<service> by Pomi B. Brow Studio, healed result”." }),
             defineField({ name: "caption", type: "string", description: "e.g. Healed six weeks" }),
             defineField({ name: "beforeAfter", title: "Before / after composite", type: "boolean" }),
           ],
         },
       ],
+    }),
+    defineField({
+      name: "seoTitle",
+      title: "Search title",
+      type: "string",
+      description: "The title Google shows. Leave empty for “<service> in Tustin, near Irvine | Pomi B. Brow Studio”.",
     }),
     defineField({
       name: "showOnHome",
@@ -75,6 +86,6 @@ export const service = defineType({
   ],
   orderings: [{ title: "Price list order", name: "order", by: [{ field: "order", direction: "asc" }] }],
   preview: {
-    select: { title: "title", subtitle: "category", media: "gallery.0" },
+    select: { title: "title", subtitle: "category", media: "cover" },
   },
 });

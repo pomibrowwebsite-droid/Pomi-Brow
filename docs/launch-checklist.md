@@ -29,6 +29,13 @@ dashboard and with the client.
       If the studio adds a booking widget, newsletter, ad pixel or chat, `/privacy` must change.
 - [ ] **Visit counts (optional):** set `PUBLIC_CF_ANALYTICS_TOKEN` in the build environment to turn
       on Cloudflare Web Analytics (cookieless; `/privacy` already describes it as "may").
+- [ ] **Sanity** (docs/sanity-setup.md):
+  - create the project in the client's account;
+  - add the CORS origins;
+  - run `npm run sanity:import`, then delete the token;
+  - set `PUBLIC_SANITY_PROJECT_ID` as a build variable;
+  - add the deploy hook and the Sanity webhook;
+  - invite Pomi.
 - [ ] **Pomi's bio** (Site settings in Sanity). The About section hides itself until it is real.
 
 ## Recommended soon after

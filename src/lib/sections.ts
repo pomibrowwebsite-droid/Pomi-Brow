@@ -34,6 +34,8 @@ export interface ImageSlot {
   /** The shot list entry: what the photograph should show. Written inside the empty frame. */
   shot: string;
   photo?: SeedPhotoRef;
+  /** A photo uploaded in the Studio (not one of the repo's gallery files), served by Sanity. */
+  uploaded?: import("./content").Photo;
 }
 
 export interface Link {

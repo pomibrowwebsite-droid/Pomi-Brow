@@ -14,7 +14,9 @@
     "logo:export": "powershell -ExecutionPolicy Bypass -File scripts/export-logo.ps1",
     "live:embeds": "node scripts/import-live-embeds.mjs",
     "live:capture": "node scripts/capture-live.mjs",
-    "a11y": "node scripts/a11y-audit.mjs"
+    "a11y": "node scripts/a11y-audit.mjs",
+    "sanity:import": "node scripts/sanity-import.mjs",
+    "sanity:parity": "node scripts/sanity-parity.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.10",
@@ -41,6 +43,7 @@
     "@types/react-dom": "^19.2.0",
     "axe-core": "^4.14.0",
     "entities": "^4.5.0",
+    "groq-js": "^2.0.1",
     "node-html-parser": "^7.1.0",
     "puppeteer-core": "^25.10.0",
     "typescript": "^5.9.3",
