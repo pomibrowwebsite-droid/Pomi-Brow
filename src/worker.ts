@@ -13,6 +13,8 @@ interface Env {
   RESEND_API_KEY?: string;
   APPOINTMENT_TO?: string;
   APPOINTMENT_FROM?: string;
+  APPOINTMENT_CC?: string;
+  APPOINTMENT_BCC?: string;
   CONTACT_LIMITER?: RateLimiter;
 }
 

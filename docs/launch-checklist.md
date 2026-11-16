@@ -13,6 +13,8 @@ dashboard and with the client.
       - `APPOINTMENT_TO`, the inbox that should get requests (comma-separate several).
       - `APPOINTMENT_FROM` only to change the sender from
         `Pomi B. Brow Studio website <website@pomibrow.com>`.
+      - `APPOINTMENT_BCC` (optional), to get a hidden copy of every request: Pomi's email
+        won't show it. `APPOINTMENT_CC` does the same but visibly. Comma-separate several.
       Until the key and recipient are set, the form tells visitors to call instead, and the
       Worker log shows `[contact] RESEND_API_KEY and APPOINTMENT_TO must both be set`. Send one
       test request; a failed send logs `[contact] Resend failed:` with Resend's reason.

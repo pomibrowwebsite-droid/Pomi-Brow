@@ -67,6 +67,23 @@ test("sends to every address in APPOINTMENT_TO and honours APPOINTMENT_FROM", as
   assert.deepEqual(calls[0].body.to, ["a@example.com", "b@example.com"]);
   assert.equal(calls[0].body.from, "Studio <hi@pomibrow.com>");
   assert.equal(calls[0].body.reply_to, undefined, "no reply-to without an email");
+  assert.ok(!("cc" in calls[0].body) && !("bcc" in calls[0].body), "no copies unless configured");
+});
+
+test("copies go to APPOINTMENT_CC and APPOINTMENT_BCC when set", async () => {
+  const { fetchLike, calls } = recorder();
+  const custom: ContactEnv = { ...env, APPOINTMENT_CC: " shown@example.com ", APPOINTMENT_BCC: "hidden@example.com, other@example.com," };
+  await handleContact(post(GOOD), custom, { fetch: fetchLike });
+  assert.deepEqual(calls[0].body.to, ["pomi@example.com"]);
+  assert.deepEqual(calls[0].body.cc, ["shown@example.com"]);
+  assert.deepEqual(calls[0].body.bcc, ["hidden@example.com", "other@example.com"]);
+});
+
+test("a copy address alone is not enough to send", async () => {
+  const { fetchLike, calls } = recorder();
+  const res = await handleContact(post(GOOD), { RESEND_API_KEY: "re_test", APPOINTMENT_BCC: "hidden@example.com" }, { fetch: fetchLike });
+  assert.equal(res.status, 503);
+  assert.equal(calls.length, 0);
 });
 
 test("visitor text is escaped in the HTML email", async () => {
