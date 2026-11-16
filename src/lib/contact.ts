@@ -1,7 +1,8 @@
 // The contact / appointment-request endpoint, POST /api/contact. One core shared by the Worker
 // (src/worker.ts, the live deploy) and the Pages Function (functions/api/contact.ts), tested in
 // tests/contact.test.ts. Each request is emailed to the studio through Resend (RESEND_API_KEY,
-// APPOINTMENT_TO, APPOINTMENT_FROM) and never stored here.
+// APPOINTMENT_TO, APPOINTMENT_FROM, and optionally APPOINTMENT_CC / APPOINTMENT_BCC) and never
+// stored here.
 //
 // Defences, cheapest first: same-origin only, a body-size cap enforced while reading, an
 // optional per-network rate limit (the CONTACT_LIMITER binding in wrangler.jsonc), a honeypot
@@ -23,8 +24,16 @@ export interface ContactEnv {
   APPOINTMENT_TO?: string;
   /** The sender. Must be on a domain verified in Resend; defaults to DEFAULT_FROM. */
   APPOINTMENT_FROM?: string;
+  /** Optional copies, shown to every recipient. Comma-separated. */
+  APPOINTMENT_CC?: string;
+  /** Optional hidden copies: delivered, but not shown on the email. Comma-separated. */
+  APPOINTMENT_BCC?: string;
   CONTACT_LIMITER?: RateLimiter;
 }
+
+/** "a@x.com, b@y.com" → ["a@x.com", "b@y.com"]; empty or unset → []. */
+export const addressList = (value: string | undefined) =>
+  (value ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
 export interface ContactDeps {
   fetch?: typeof fetch;
@@ -90,7 +99,7 @@ export interface Appointment {
 }
 
 /** The email Pomi receives: a short table, the message, and reply-to set to the visitor. */
-export function composeEmail(a: Appointment, from: string, to: string[]) {
+export function composeEmail(a: Appointment, from: string, to: string[], copies: { cc?: string[]; bcc?: string[] } = {}) {
   const rows: [string, string][] = [
     ["Name", a.name],
     ["Phone", a.phone],
@@ -113,6 +122,8 @@ export function composeEmail(a: Appointment, from: string, to: string[]) {
   return {
     from,
     to,
+    ...(copies.cc?.length ? { cc: copies.cc } : {}),
+    ...(copies.bcc?.length ? { bcc: copies.bcc } : {}),
     subject: `Appointment request from ${a.name}`,
     html,
     text,
@@ -258,7 +269,7 @@ async function evaluate(request: Request, env: ContactEnv, deps: ContactDeps): P
   if (email && !isEmail(email)) return fail(422, "invalid-email");
 
   const apiKey = env.RESEND_API_KEY?.trim();
-  const to = (env.APPOINTMENT_TO ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const to = addressList(env.APPOINTMENT_TO);
   if (!apiKey || !to.length) {
     // Not configured yet. Tell the visitor plainly; the page offers the phone number.
     log("[contact] RESEND_API_KEY and APPOINTMENT_TO must both be set: a request could not be delivered");
@@ -270,7 +281,12 @@ async function evaluate(request: Request, env: ContactEnv, deps: ContactDeps): P
   const upstream = await doFetch(RESEND_ENDPOINT, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify(composeEmail({ name, phone, email, service, message, page: sourcePath(request) }, from, to)),
+    body: JSON.stringify(
+      composeEmail({ name, phone, email, service, message, page: sourcePath(request) }, from, to, {
+        cc: addressList(env.APPOINTMENT_CC),
+        bcc: addressList(env.APPOINTMENT_BCC),
+      }),
+    ),
     signal: AbortSignal.timeout(8000),
   }).catch(() => null);
 
