@@ -13,6 +13,9 @@
 import type { SiteSettings, HomePage, Photo as PhotoType } from "../lib/content";
 import Photo from "./Photo.astro";
 import Icon from "./Icon.astro";
+import { stegaClean } from "@sanity/client/stega";
+import { createDataAttribute } from "@sanity/visual-editing/create-data-attribute";
+import { PREVIEW, STUDIO_URL } from "../lib/preview";
 
 export interface HeroTile {
   photo: PhotoType;
@@ -36,7 +39,40 @@ const { settings, home, tiles } = Astro.props;
 
 // The occasions the line cycles through. The first is the resting state, and the only
 // one prefers-reduced-motion users see.
-const OCCASIONS = home.heroOccasions;
+//
+// In the editor's preview, Sanity's click-to-edit marks are ~1,000 invisible characters per
+// string. Inside the headline they shift where the line wraps and, in the stacked word cycle,
+// push the words over the headline. So the hero's words are always clean, and in the preview
+// click-to-edit comes from a data-sanity attribute instead.
+const headline = stegaClean(home.heroHeadline);
+const OCCASIONS = home.heroOccasions.map((w) => stegaClean(w));
+const editable = (path: string) =>
+  PREVIEW
+    ? createDataAttribute({
+        projectId: import.meta.env.PUBLIC_SANITY_PROJECT_ID,
+        dataset: import.meta.env.PUBLIC_SANITY_DATASET || "production",
+        baseUrl: STUDIO_URL,
+        id: "homePage",
+        type: "homePage",
+        path,
+      }).toString()
+    : undefined;
+
+// Each word owns 2.4s of the loop: it rises in over 0.42s, holds, and lifts out by 2.4s.
+// The stylesheet's keyframes are written for seven words; any other count gets its own,
+// computed here, so adding or removing a word in the editor keeps the same rhythm.
+const WORD_SECONDS = 2.4;
+const DESIGNED_COUNT = 7;
+const count = OCCASIONS.length;
+const pct = (seconds: number) => `${+((seconds / (WORD_SECONDS * count)) * 100).toFixed(3)}%`;
+const hidden = (y: string) => `opacity:0;transform:translateY(${y});filter:blur(4px)`;
+const shown = "opacity:1;transform:none;filter:blur(0)";
+const swapName = count === DESIGNED_COUNT ? undefined : count < 2 ? "none" : `hero-word-swap-${count}`;
+const swapKeyframes =
+  swapName && swapName !== "none"
+    ? `@keyframes ${swapName}{0%{${hidden("0.35em")}}${pct(0.42)}{${shown}}${pct(2.016)}{${shown}}${pct(2.4)}{${hidden("-0.35em")}}100%{${hidden("0.35em")}}}`
+    : undefined;
+const cycleStyle = swapName ? `--words:${count};--swap:${swapName}` : undefined;
 
 const categories = [
   { label: "Brows", mod: "brow" },
@@ -50,9 +86,10 @@ const categories = [
     Fading it in would hold the page's LCP element at zero opacity for the length of the transition. */}
 <section class="hero page" data-hero>
   <div class="hero__copy">
-    <h1>
-      {home.heroHeadline}{" "}
-      <span class="hero__cycle" aria-hidden="true" data-cycle>
+    {swapKeyframes && <style is:inline set:html={swapKeyframes} />}
+    <h1 data-sanity={editable("heroHeadline")}>
+      {headline}{" "}
+      <span class="hero__cycle" aria-hidden="true" data-cycle style={cycleStyle} data-sanity={editable("heroOccasions")}>
         {OCCASIONS.map((w, i) => (
           <span class="hero__word" style={`--i:${i}`}>{w}</span>
         ))}
@@ -165,6 +202,8 @@ const categories = [
   }
   :global(.js) .hero__cycle:not([data-paused]) .hero__word {
     animation: hero-word-swap 16.8s var(--ease-out) infinite;
+    animation-name: var(--swap, hero-word-swap);
+    animation-duration: calc(var(--words, 7) * 2.4s);
     animation-delay: calc(var(--i) * 2.4s);
   }
   @keyframes hero-word-swap {
