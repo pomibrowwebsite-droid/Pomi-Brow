@@ -29,6 +29,10 @@ dashboard and with the client.
 - [ ] **Client review of the policy pages** (`/privacy`, `/terms`, `/accessibility`). They are
       written to match what the site actually does, in plain language, but are not legal advice.
       If the studio adds a booking widget, newsletter, ad pixel or chat, `/privacy` must change.
+- [ ] **Google Analytics** (`G-SP9K1HZ3W5`, in `src/layouts/Base.astro`) counts only on
+      `pomibrow.com` / `www.pomibrow.com`, so nothing shows in GA until the domain points at the
+      new site. In GA, set Admin → Data collection and modification → Data retention to 14 months
+      (`/privacy` says "no more than 14 months"), and keep Google signals off.
 - [ ] **Visit counts (optional):** set `PUBLIC_CF_ANALYTICS_TOKEN` in the build environment to turn
       on Cloudflare Web Analytics (cookieless; `/privacy` already describes it as "may").
 - [ ] **Sanity** (docs/sanity-setup.md):
