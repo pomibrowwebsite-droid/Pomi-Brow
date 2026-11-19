@@ -1,14 +1,15 @@
 ---
 // Privacy & Cookie Policy. Written for California (CalOPPA), in plain words, and true to what
-// the site actually does: no cookies of its own, cookieless analytics, a form that forwards to
-// the studio, and two third parties (Google Maps, only on request; Instagram images).
-// If any of that changes -- a booking widget, an ad pixel, a newsletter -- this page must too.
+// the site actually does: Google Analytics (its cookies, no ad features, off under GPC/DNT; see
+// src/layouts/Base.astro), a form that forwards to the studio, Google Maps only on request, and
+// Instagram images. If any of that changes -- a booking widget, an ad pixel, a newsletter -- this
+// page must too.
 import LegalPage from "../layouts/LegalPage.astro";
 import { getSiteSettings } from "../lib/content";
 import { MAP_CONSENT_KEY } from "../lib/consent";
 
 const settings = await getSiteSettings();
-const updated = "November 13, 2026";
+const updated = "November 19, 2026";
 ---
 
 <LegalPage
@@ -21,7 +22,7 @@ const updated = "November 13, 2026";
 >
   <h2 id="summary">The short version</h2>
   <ul>
-    <li>This website sets no cookies of its own and runs no advertising or tracking pixels.</li>
+    <li>We use Google Analytics, which sets cookies, to count visits and see which pages are read. It is not used for advertising, and it stays off if your browser sends Global Privacy Control or Do Not Track.</li>
     <li>If you send the appointment form, we use what you write only to reply and arrange your visit.</li>
     <li>We never sell or share your information for advertising.</li>
     <li>The Google map loads only if you ask for it, because Google may set cookies.</li>
@@ -50,6 +51,13 @@ const updated = "November 13, 2026";
     details in order to send you the page and block abuse. We may also use Cloudflare Web Analytics to count visits. It does
     not use cookies, does not build a profile of you, and does not follow you to other websites.
   </p>
+  <p>
+    We also use Google Analytics. It records which pages you view, how you reached the website (for example, from a search
+    or from Instagram), your device and browser type, and your approximate area, worked out from your IP address. Google
+    Analytics does not store your IP address. It recognises a returning browser by a random number kept in a cookie. We see
+    only totals and trends, not who you are. We have turned off Google's advertising features for this website, so this data
+    is not used to show you ads.
+  </p>
 
   <h2 id="use">How we use it</h2>
   <ul>
@@ -66,7 +74,7 @@ const updated = "November 13, 2026";
     <li><strong>Cloudflare</strong> hosts the website, protects it, and may count visits.</li>
     <li><strong>Resend</strong>, an email delivery service, carries your form message to the studio's inbox.</li>
     <li>
-      <strong>Google</strong>, only if you choose to show the map. Once loaded, the map is Google's, and <a href="https://policies.google.com/privacy" rel="noopener">Google's privacy policy</a> applies to it.
+      <strong>Google</strong> receives visit information through Google Analytics, as described above. It also loads the map, but only if you choose to show it. Once loaded, the map is Google's. <a href="https://policies.google.com/privacy" rel="noopener">Google's privacy policy</a> applies to both.
     </li>
     <li>
       <strong>Instagram</strong> (Meta). When our Instagram section shows our latest posts, those photos load from
@@ -80,8 +88,14 @@ const updated = "November 13, 2026";
 
   <h2 id="cookies">Cookies and similar storage</h2>
   <p>
-    This website does not set cookies of its own. (Cloudflare may set a strictly necessary security cookie if it needs
-    to check that a visitor is not a bot.) If you choose to show the Google map, your browser remembers that choice on your
+    Google Analytics sets two cookies on this website, <code>_ga</code> and one starting <code>_ga_</code>, to tell
+    returning browsers from new ones. They last up to two years. You can block or delete them in your browser settings,
+    turn on Global Privacy Control, or install <a href="https://tools.google.com/dlpage/gaoptout" rel="noopener">Google's
+    opt-out add-on</a>. The website works the same without them. (Cloudflare may also set a strictly necessary security
+    cookie if it needs to check that a visitor is not a bot.)
+  </p>
+  <p>
+    If you choose to show the Google map, your browser remembers that choice on your
     device (in local storage, under the name <code>{MAP_CONSENT_KEY}</code>) so the map loads straight away next time. Nothing
     about that choice is sent to us. You can clear it below.
   </p>
@@ -102,13 +116,14 @@ const updated = "November 13, 2026";
   </p>
   <p>
     <strong>Do Not Track and Global Privacy Control.</strong> We don't track visitors across websites or sell their
-    information, so there is nothing for these signals to switch off. We treat them as a request not to, all the same.
+    information. If your browser sends either signal, this website does not load Google Analytics.
   </p>
 
   <h2 id="keep">How long we keep it</h2>
   <p>
     Form messages are kept for as long as we need them to reply and keep appointment records, and then deleted. Cloudflare
-    keeps routine server records for a short period for security.
+    keeps routine server records for a short period for security. Google Analytics keeps visit records for no more than
+    14 months.
   </p>
 
   <h2 id="children">Children</h2>

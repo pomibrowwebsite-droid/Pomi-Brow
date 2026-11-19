@@ -122,6 +122,33 @@ const faqSchema =
     <meta name="twitter:card" content="summary_large_image" />
     <script type="application/ld+json" set:html={jsonLd(business)} />
     {faqSchema && <script type="application/ld+json" set:html={jsonLd(faqSchema)} />}
+    {/* Google Analytics 4. Counts only the live site (not local builds, workers.dev or the
+        editor's preview), never ad-linked, and stays off for visitors whose browser sends Global
+        Privacy Control or Do Not Track, as /privacy promises. Its CSP hash is computed at build
+        time; Google's hosts are in public/_headers. If this changes, /privacy must too. */}
+    {
+      !PREVIEW && (
+        <script is:inline>
+          (function () {
+            if (!/^(www\.)?pomibrow\.com$/.test(location.hostname)) return;
+            if (navigator.globalPrivacyControl || navigator.doNotTrack === "1" || window.doNotTrack === "1") return;
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function () {
+              window.dataLayer.push(arguments);
+            };
+            window.gtag("js", new Date());
+            window.gtag("config", "G-SP9K1HZ3W5", {
+              allow_google_signals: false,
+              allow_ad_personalization_signals: false,
+            });
+            var s = document.createElement("script");
+            s.async = true;
+            s.src = "https://www.googletagmanager.com/gtag/js?id=G-SP9K1HZ3W5";
+            document.head.appendChild(s);
+          })();
+        </script>
+      )
+    }
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
